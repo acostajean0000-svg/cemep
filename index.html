@@ -170,12 +170,31 @@
 var CREDENTIALS = [
   {last:"Rodríguez", pin:"1234", picker:"Ana (mamá)",    students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
   {last:"Rodríguez", pin:"5678", picker:"Luis (papá)",   students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
-  {last:"Jiménez",   pin:"1111", picker:"Carlos (papá)", students:[{name:"Mateo Jiménez", aula:"5° B"}]},
-  {last:"Pérez",     pin:"3333", picker:"Elena (mamá)",  students:[{name:"Valentina Pérez", aula:"1° A"}]},
-  {last:"Santana",   pin:"7777", picker:"Paula (mamá)",  students:[{name:"Diego Santana", aula:"4° C"},{name:"Lucía Santana", aula:"2° A"}]},
-  {last:"Cruz",      pin:"1010", picker:"Pedro (abuelo)",students:[{name:"Isabella Cruz", aula:"2° A"}]}
+  {last:"Rodríguez", pin:"4321", picker:"Rosa (abuela)", students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
+  {last:"Jiménez", pin:"1111", picker:"Carlos (papá)", students:[{name:"Mateo Jiménez", aula:"5° B"}]},
+  {last:"Jiménez", pin:"2222", picker:"Marta (tía)",   students:[{name:"Mateo Jiménez", aula:"5° B"}]},
+  {last:"Pérez", pin:"3333", picker:"Elena (mamá)",  students:[{name:"Valentina Pérez", aula:"1° A"}]},
+  {last:"Pérez", pin:"9999", picker:"Chofer autoriz.", students:[{name:"Valentina Pérez", aula:"1° A"}]},
+  {last:"Santana", pin:"7777", picker:"Paula (mamá)",  students:[{name:"Diego Santana", aula:"4° C"},{name:"Lucía Santana", aula:"2° A"}]},
+  {last:"Santana", pin:"8888", picker:"Jorge (papá)",  students:[{name:"Diego Santana", aula:"4° C"},{name:"Lucía Santana", aula:"2° A"}]},
+  {last:"Cruz", pin:"1010", picker:"Pedro (abuelo)", students:[{name:"Isabella Cruz", aula:"2° A"}]},
+  {last:"Cruz", pin:"2020", picker:"Carmen (mamá)", students:[{name:"Isabella Cruz", aula:"2° A"}]},
+  {last:"Reyes", pin:"1212", picker:"Yahaira (mamá)", students:[{name:"Sebastián Reyes", aula:"1° A"},{name:"Camila Reyes", aula:"3° A"}]},
+  {last:"Reyes", pin:"3434", picker:"Ramón (papá)",  students:[{name:"Sebastián Reyes", aula:"1° A"},{name:"Camila Reyes", aula:"3° A"}]},
+  {last:"Fernández", pin:"5656", picker:"Lucía (mamá)",  students:[{name:"Adrián Fernández", aula:"5° B"}]},
+  {last:"Fernández", pin:"6767", picker:"Abuela Nena",   students:[{name:"Adrián Fernández", aula:"5° B"}]},
+  {last:"Peña", pin:"7878", picker:"José (papá)",   students:[{name:"Emma Peña", aula:"4° C"}]},
+  {last:"Peña", pin:"8989", picker:"Chofer autoriz.", students:[{name:"Emma Peña", aula:"4° C"}]},
+  {last:"Martínez", pin:"1357", picker:"Rosaura (mamá)", students:[{name:"Gabriel Martínez", aula:"2° A"},{name:"Daniela Martínez", aula:"5° B"}]},
+  {last:"Martínez", pin:"2468", picker:"Miguel (papá)", students:[{name:"Gabriel Martínez", aula:"2° A"},{name:"Daniela Martínez", aula:"5° B"}]},
+  {last:"Guzmán", pin:"1470", picker:"Katherine (mamá)", students:[{name:"Noah Guzmán", aula:"1° A"}]},
+  {last:"Guzmán", pin:"2580", picker:"Tío Frank",     students:[{name:"Noah Guzmán", aula:"1° A"}]},
+  {last:"Batista", pin:"3690", picker:"Wanda (mamá)",  students:[{name:"Amelia Batista", aula:"3° A"}]},
+  {last:"Batista", pin:"1590", picker:"Héctor (papá)", students:[{name:"Amelia Batista", aula:"3° A"}]},
+  {last:"Núñez", pin:"7410", picker:"Yesenia (mamá)", students:[{name:"Liam Núñez", aula:"4° C"}]},
+  {last:"Núñez", pin:"8520", picker:"Abuelo Tavo",   students:[{name:"Liam Núñez", aula:"4° C"}]}
 ];
-var AULAS = ["1° A","2° A","3° A","4° C","5° B"];
+var AULAS = ["1° A", "2° A", "3° A", "4° C", "5° B"];
 
 function norm(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
 function findCred(last,pin){ var nl=norm(last); return CREDENTIALS.find(function(c){return norm(c.last)===nl && c.pin===pin;}); }
