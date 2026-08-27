@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CEMEP · Recogida</title>
+<title>CEMEP · Recogida · Simulador de flujo</title>
 <style>
   :root{
     --ink:#1c2b24; --ink2:#4a5b52; --ink3:#7d8b83;
@@ -11,13 +11,14 @@
     --brand:#1f5c3d; --brand2:#2d7a52; --brand-soft:#e4efe6;
     --gold:#c98a2b; --gold-soft:#f6ecd8;
     --alert:#a8352a; --alert-soft:#f7e6e3;
+    --blue:#245c86; --blue-soft:#e3eef6;
     --radius:14px;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;
        -webkit-font-smoothing:antialiased;padding:18px;display:flex;justify-content:center}
-  .wrap{width:100%;max-width:1000px}
+  .wrap{width:100%;max-width:1280px}
   header.top{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;flex-wrap:wrap}
   .logo{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--brand)}
   .logo span{color:var(--gold)}
@@ -25,54 +26,60 @@
   .clockbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--card);
     border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin:10px 0 16px}
   .clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px}
-  .win{font-size:12px;color:var(--ink2)}
-  .win b{color:var(--brand)}
-  .win.closed b{color:var(--alert)}
+  .win{font-size:12px;color:var(--ink2)} .win b{color:var(--brand)} .win.closed b{color:var(--alert)}
   .set{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3)}
   .set select{padding:4px 6px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:12px;background:#fff}
-  .grid{display:grid;grid-template-columns:1fr 1.15fr;gap:16px}
-  @media(max-width:760px){.grid{grid-template-columns:1fr}}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-  .phead{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
-  .phead .role{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:600}
-  .phead h2{margin:0;font-size:15px;font-weight:700}
-  .pbody{padding:16px}
+  .flow{font-size:11px;color:var(--ink3);text-align:center;margin:-4px 0 14px}
+  .flow b{color:var(--ink2)}
+  .flow .arr{color:var(--gold);margin:0 6px;font-weight:700}
+  .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media(max-width:980px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+  .phead{padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .phead .role{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;padding:2px 7px;border-radius:20px}
+  .role.padre{background:var(--gold-soft);color:#8a5e12}
+  .role.aula{background:var(--blue-soft);color:var(--blue)}
+  .role.puerta{background:var(--brand-soft);color:var(--brand)}
+  .phead h2{margin:0;font-size:14px;font-weight:700}
+  .phead .count{margin-left:auto;font-size:11px;color:var(--ink3)} .phead .count b{color:var(--brand);font-size:14px}
+  .pbody{padding:14px;flex:1}
   label.fld{display:block;font-size:12px;color:var(--ink2);font-weight:600;margin:0 0 4px}
-  input.txt{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  input.txt,select.sel{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
     font-family:inherit;font-size:14px;background:#fff;color:var(--ink)}
   input.txt:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
-  .row{margin-bottom:12px}
-  .btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--brand);color:#fff;
+  .row{margin-bottom:10px}
+  .btn{width:100%;padding:11px;border:none;border-radius:9px;background:var(--brand);color:#fff;
     font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
   .btn:hover{background:var(--brand2)}
-  .privacy{font-size:11px;color:var(--ink3);margin:2px 0 12px;display:flex;gap:6px;align-items:flex-start}
+  .btn.blue{background:var(--blue)} .btn.blue:hover{background:#1d4c6f}
+  .privacy{font-size:11px;color:var(--ink3);margin:2px 0 10px;display:flex;gap:6px;align-items:flex-start}
   .privacy svg{flex:none;margin-top:1px}
-  .msg{margin-top:12px;padding:11px 13px;border-radius:10px;font-size:13px;display:none}
+  .msg{margin-top:10px;padding:10px 12px;border-radius:9px;font-size:12.5px;display:none}
   .msg.show{display:block}
   .msg.ok{background:var(--brand-soft);color:var(--brand);border:1px solid #bcd8c4}
   .msg.warn{background:var(--gold-soft);color:#8a5e12;border:1px solid #ecd6a6}
   .msg.err{background:var(--alert-soft);color:var(--alert);border:1px solid #ecc4bf}
-  .revealbox{margin-top:6px;padding:14px;border:1px solid #bcd8c4;background:var(--brand-soft);
-    border-radius:12px;animation:pop .25s ease}
-  .rlabel{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);font-weight:700}
-  .rname{font-size:17px;font-weight:800;color:var(--ink);margin-top:3px}
-  .rname .sub{font-weight:400;color:var(--ink3);font-size:13px}
-  .rpicker{font-size:12px;color:var(--ink2);margin-top:3px}
+  .revealbox{margin-top:4px;padding:12px;border:1px solid #bcd8c4;background:var(--brand-soft);border-radius:11px;animation:pop .25s ease}
+  .rlabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--brand);font-weight:700}
+  .rname{font-size:16px;font-weight:800;margin-top:2px} .rname .sub{font-weight:400;color:var(--ink3);font-size:13px}
+  .rpicker{font-size:12px;color:var(--ink2);margin-top:2px}
   @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-  .queue{list-style:none;margin:0;padding:0}
-  .qcard{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);animation:pop .25s ease}
-  .qnum{width:26px;height:26px;flex:none;border-radius:50%;background:var(--brand);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-  .qmain{flex:1;min-width:0}
-  .qname{font-weight:700;font-size:14px}
-  .qsub{font-size:12px;color:var(--ink3)}
-  .qtag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 7px;border-radius:20px;white-space:nowrap;background:var(--brand-soft);color:var(--brand)}
-  .qtime{font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums}
-  .qdone{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink2)}
-  .qdone:hover{border-color:var(--brand);color:var(--brand)}
-  .empty{padding:28px 16px;text-align:center;color:var(--ink3);font-size:13px}
-  .count{margin-left:auto;font-size:12px;color:var(--ink3)}
-  .count b{color:var(--brand);font-size:15px}
+  .list{list-style:none;margin:0;padding:0}
+  .item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);animation:pop .22s ease}
+  .item:last-child{border-bottom:none}
+  .badge{width:24px;height:24px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+  .badge.aula{background:var(--blue)} .badge.puerta{background:var(--brand)}
+  .imain{flex:1;min-width:0}
+  .iname{font-weight:700;font-size:13.5px}
+  .isub{font-size:11.5px;color:var(--ink3)}
+  .st{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:20px;white-space:nowrap}
+  .st.avisado{background:var(--gold-soft);color:#8a5e12}
+  .st.camino{background:var(--blue-soft);color:var(--blue)}
+  .act{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--ink2);white-space:nowrap}
+  .act.blue{border-color:var(--blue);color:var(--blue)} .act.blue:hover{background:var(--blue-soft)}
+  .act.green{border-color:var(--brand);color:var(--brand)} .act.green:hover{background:var(--brand-soft)}
+  .empty{padding:22px 14px;text-align:center;color:var(--ink3);font-size:12.5px}
+  .aulapick{margin-bottom:10px}
   .foot{margin-top:16px;font-size:11px;color:var(--ink3);text-align:center;line-height:1.6}
 </style>
 </head>
@@ -80,7 +87,7 @@
 <div class="wrap">
   <header class="top">
     <div class="logo">CEMEP<span>·</span>Recogida</div>
-    <div class="tag">Prototipo del sistema de pre-aviso · datos de ejemplo</div>
+    <div class="tag">Simulador del flujo completo · datos de ejemplo</div>
   </header>
 
   <div class="clockbar">
@@ -93,14 +100,16 @@
         <option value="3">miércoles</option><option value="4">jueves</option>
         <option value="5">viernes</option>
       </select>
-      <button class="qdone" id="simnow" title="Simular que ya es la hora">simular hora pico</button>
+      <button class="act" id="simnow">simular hora pico</button>
     </div>
   </div>
 
-  <div class="grid">
-    <!-- ===== VISTA PADRE ===== -->
+  <p class="flow">Flujo: <b>padre avisa</b> <span class="arr">→</span> le llega al <b>aula del niño</b> <span class="arr">→</span> el maestro confirma que <b>salió</b> <span class="arr">→</span> aparece en la <b>puerta</b> para entrega</p>
+
+  <div class="cols">
+    <!-- ===== PADRE ===== -->
     <section class="panel">
-      <div class="phead"><span class="role">Vista del padre</span><h2>Avisar que llegué</h2></div>
+      <div class="phead"><span class="role padre">Padre</span><h2>Avisar que llegué</h2></div>
       <div class="pbody">
         <div class="row">
           <label class="fld" for="lastname">Apellido del estudiante</label>
@@ -112,148 +121,166 @@
         </div>
         <div class="privacy">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d8b83" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          <span>Por privacidad, el nombre del estudiante no se muestra hasta que el apellido y el PIN coincidan.</span>
+          <span>El nombre no se muestra hasta que el apellido y el PIN coincidan.</span>
         </div>
         <button class="btn" id="reveal">Verificar</button>
-
         <div id="revealbox" class="revealbox" style="display:none">
           <div class="rlabel">Recoger a</div>
           <div class="rname" id="rname"></div>
           <div class="rpicker" id="rpicker"></div>
-          <button class="btn" id="notify" style="margin-top:12px">Avisar que voy en camino</button>
+          <button class="btn" id="notify" style="margin-top:10px">Avisar que voy en camino</button>
         </div>
-
         <div class="msg" id="msg"></div>
       </div>
     </section>
 
-    <!-- ===== VISTA PERSONAL ===== -->
+    <!-- ===== AULA ===== -->
     <section class="panel">
-      <div class="phead">
-        <span class="role">Vista del personal</span><h2>Cola de recogida</h2>
-        <span class="count">en cola <b id="qcount">0</b></span>
+      <div class="phead"><span class="role aula">Aula</span><h2>Avisos del maestro</h2>
+        <span class="count">pendientes <b id="aulacount">0</b></span></div>
+      <div class="pbody">
+        <div class="aulapick">
+          <label class="fld" for="aulasel">Estás viendo el aula</label>
+          <select class="sel" id="aulasel"></select>
+        </div>
+        <ul class="list" id="aulalist"></ul>
+        <div class="empty" id="aulaempty">Sin avisos para esta aula todavía.</div>
       </div>
-      <ul class="queue" id="queue"></ul>
-      <div class="empty" id="qempty">Nadie ha avisado todavía. Cuando un padre verifica y avisa, el estudiante aparece aquí en orden de llegada.</div>
+    </section>
+
+    <!-- ===== PUERTA ===== -->
+    <section class="panel">
+      <div class="phead"><span class="role puerta">Puerta</span><h2>Entrega en la zona de carga</h2>
+        <span class="count">en camino <b id="puertacount">0</b></span></div>
+      <div class="pbody">
+        <ul class="list" id="puertalist"></ul>
+        <div class="empty" id="puertaempty">Nadie va en camino todavía. Cuando un maestro confirma la salida, el niño aparece aquí.</div>
+      </div>
     </section>
   </div>
 
   <p class="foot">
-    Prototipo de demostración. Los datos (estudiantes, autorizados, apellidos y PIN) son de ejemplo y viven solo en esta pantalla.<br>
-    Restricciones activas: <b>doble verificación</b> (apellido + PIN, el nombre queda oculto hasta que coinciden), <b>orden de llegada</b> y <b>horario por día</b>.
+    Simulador de demostración. Datos de ejemplo; todo vive solo en esta pantalla.<br>
+    Cada aviso pasa por tres estados: <b>avisado</b> (esperando en el aula) → <b>en camino</b> (el maestro confirmó salida) → <b>entregado</b> (la puerta lo cerró). El aula solo ve a sus propios estudiantes.
   </p>
 </div>
 
 <script>
 // ---------- datos de ejemplo ----------
-// Los nombres de los estudiantes NO se listan en el formulario.
-// Solo se revelan cuando apellido + PIN coinciden con una credencial.
 var CREDENTIALS = [
-  {last:"Rodríguez", pin:"1234", picker:"Ana (mamá)",    students:[{name:"Sofía Rodríguez", grade:"3° A"}]},
-  {last:"Rodríguez", pin:"5678", picker:"Luis (papá)",   students:[{name:"Sofía Rodríguez", grade:"3° A"}]},
-  {last:"Jiménez",   pin:"1111", picker:"Carlos (papá)", students:[{name:"Mateo Jiménez", grade:"5° B"}]},
-  {last:"Pérez",     pin:"3333", picker:"Elena (mamá)",  students:[{name:"Valentina Pérez", grade:"1° A"}]},
-  {last:"Santana",   pin:"7777", picker:"Paula (mamá)",  students:[{name:"Diego Santana", grade:"4° C"},{name:"Lucía Santana", grade:"2° A"}]},
-  {last:"Cruz",      pin:"1010", picker:"Pedro (abuelo)",students:[{name:"Isabella Cruz", grade:"2° B"}]}
+  {last:"Rodríguez", pin:"1234", picker:"Ana (mamá)",    students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
+  {last:"Rodríguez", pin:"5678", picker:"Luis (papá)",   students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
+  {last:"Jiménez",   pin:"1111", picker:"Carlos (papá)", students:[{name:"Mateo Jiménez", aula:"5° B"}]},
+  {last:"Pérez",     pin:"3333", picker:"Elena (mamá)",  students:[{name:"Valentina Pérez", aula:"1° A"}]},
+  {last:"Santana",   pin:"7777", picker:"Paula (mamá)",  students:[{name:"Diego Santana", aula:"4° C"},{name:"Lucía Santana", aula:"2° A"}]},
+  {last:"Cruz",      pin:"1010", picker:"Pedro (abuelo)",students:[{name:"Isabella Cruz", aula:"2° A"}]}
 ];
-function norm(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
-function findCred(last, pin){ var nl=norm(last); return CREDENTIALS.find(function(c){ return norm(c.last)===nl && c.pin===pin; }); }
+var AULAS = ["1° A","2° A","3° A","4° C","5° B"];
 
-var queue = [], seq = 0, simulatedPeak = false, verified = null;
-var $ = function(id){return document.getElementById(id);};
+function norm(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
+function findCred(last,pin){ var nl=norm(last); return CREDENTIALS.find(function(c){return norm(c.last)===nl && c.pin===pin;}); }
+
+// records: {id, name, aula, picker, state:'avisado'|'camino'|'entregado', tstr}
+var records=[], seq=0, simulatedPeak=false, verified=null;
+var $=function(id){return document.getElementById(id);};
 var DAYS=["dom","lunes","martes","miércoles","jueves","viernes","sáb"];
 
-function pickedDay(){ var v=$("daypick").value; return v==="auto"? new Date().getDay() : +v; }
-function openHM(dow){ if(dow===5) return {h:13,m:30}; if(dow>=1&&dow<=4) return {h:14,m:0}; return null; }
-function now(){ return simulatedPeak ? peakTime() : new Date(); }
-function peakTime(){ var d=new Date(),o=openHM(pickedDay())||{h:14,m:0}; d.setHours(o.h,o.m+5,0,0); return d; }
+function pickedDay(){var v=$("daypick").value;return v==="auto"?new Date().getDay():+v;}
+function openHM(dow){if(dow===5)return{h:13,m:30};if(dow>=1&&dow<=4)return{h:14,m:0};return null;}
+function now(){return simulatedPeak?peakTime():new Date();}
+function peakTime(){var d=new Date(),o=openHM(pickedDay())||{h:14,m:0};d.setHours(o.h,o.m+5,0,0);return d;}
 function fmt(d){var h=d.getHours(),m=d.getMinutes(),ap=h>=12?"PM":"AM",h12=h%12||12;return h12+":"+(m<10?"0":"")+m+" "+ap;}
 function tick(){
-  var d=now(); $("clock").textContent=fmt(d);
+  var d=now();$("clock").textContent=fmt(d);
   $("autoopt").textContent="hoy · "+DAYS[new Date().getDay()]+" (automático)";
-  var dow=pickedDay(); $("daylbl").textContent=DAYS[dow]; var o=openHM(dow);
-  if(!o){ $("winrange").textContent="no hay salida"; $("winlbl").classList.add("closed"); return {isOpen:false,d:d,noSchool:true}; }
-  var open=new Date(d); open.setHours(o.h,o.m,0,0);
-  $("winrange").textContent=fmt(open);
-  var isOpen=d>=open; $("winlbl").classList.toggle("closed",!isOpen);
-  return {open:open,isOpen:isOpen,d:d};
+  var dow=pickedDay();$("daylbl").textContent=DAYS[dow];var o=openHM(dow);
+  if(!o){$("winrange").textContent="no hay salida";$("winlbl").classList.add("closed");return{isOpen:false,d:d,noSchool:true};}
+  var open=new Date(d);open.setHours(o.h,o.m,0,0);
+  $("winrange").textContent=fmt(open);var isOpen=d>=open;$("winlbl").classList.toggle("closed",!isOpen);
+  return{open:open,isOpen:isOpen,d:d};
 }
 setInterval(tick,1000);
 
-// ---------- verificar (doble: apellido + PIN) ----------
-$("reveal").addEventListener("click", function(){
-  var last=$("lastname").value, pin=$("pickerpin").value.trim();
-  var msg=$("msg"); msg.className="msg show";
-  $("revealbox").style.display="none"; verified=null;
+// poblar selector de aula
+(function(){var sel=$("aulasel");AULAS.forEach(function(a){var o=document.createElement("option");o.value=a;o.textContent=a;sel.appendChild(o);});
+  sel.addEventListener("change",renderAula);})();
 
-  if(!norm(last)){ msg.classList.add("warn"); msg.textContent="Escribe el apellido del estudiante."; return; }
-  if(pin.length<4){ msg.classList.add("warn"); msg.textContent="Escribe tu PIN de 4 dígitos."; return; }
-
+// ---------- PADRE: verificar ----------
+$("reveal").addEventListener("click",function(){
+  var last=$("lastname").value,pin=$("pickerpin").value.trim(),msg=$("msg");msg.className="msg show";
+  $("revealbox").style.display="none";verified=null;
+  if(!norm(last)){msg.classList.add("warn");msg.textContent="Escribe el apellido del estudiante.";return;}
+  if(pin.length<4){msg.classList.add("warn");msg.textContent="Escribe tu PIN de 4 dígitos.";return;}
   var cred=findCred(last,pin);
-  if(!cred){
-    // no revela ningún nombre; mensaje genérico para no filtrar si el apellido existe o no
-    msg.className="msg show err";
-    msg.innerHTML="No encontramos una coincidencia con ese apellido y PIN. Verifica los datos e inténtalo otra vez.";
-    return;
-  }
-  // coincidencia: revelar nombre(s)
-  verified=cred;
-  msg.className="msg"; // ocultar
-  var box=$("revealbox"); box.style.display="block";
-  $("rname").innerHTML = cred.students.map(function(s){return s.name+' <span class="sub">· '+s.grade+'</span>';}).join("<br>");
-  $("rpicker").textContent = "Recoge: "+cred.picker;
+  if(!cred){msg.className="msg show err";msg.innerHTML="No encontramos una coincidencia con ese apellido y PIN. Verifica los datos.";return;}
+  verified=cred;msg.className="msg";
+  $("revealbox").style.display="block";
+  $("rname").innerHTML=cred.students.map(function(s){return s.name+' <span class="sub">· '+s.aula+'</span>';}).join("<br>");
+  $("rpicker").textContent="Recoge: "+cred.picker;
 });
+["lastname","pickerpin"].forEach(function(id){$(id).addEventListener("input",function(){$("revealbox").style.display="none";verified=null;$("msg").className="msg";});});
 
-// re-verificar si cambian los campos
-["lastname","pickerpin"].forEach(function(id){
-  $(id).addEventListener("input",function(){ $("revealbox").style.display="none"; verified=null; $("msg").className="msg"; });
-});
-
-// ---------- avisar ----------
-$("notify").addEventListener("click", function(){
-  if(!verified) return;
-  var st=tick(), msg=$("msg"); msg.className="msg show";
-  if(st.noSchool){ msg.classList.add("err"); msg.innerHTML="⛔ Hoy no hay salida (fin de semana). La app abre de lunes a viernes."; return; }
-  if(!st.isOpen){ msg.classList.add("err"); msg.innerHTML="⛔ Todavía no abre la ventana de salida de "+DAYS[pickedDay()]+". Puedes avisar a partir de las <b>"+fmt(st.open)+"</b>."; return; }
-
-  verified.students.forEach(function(s){
-    seq++;
-    queue.push({id:seq, name:s.name, grade:s.grade, picker:verified.picker, time:st.d, tstr:fmt(st.d)});
-  });
-  renderQueue();
+// ---------- PADRE: avisar ----------
+$("notify").addEventListener("click",function(){
+  if(!verified)return;var st=tick(),msg=$("msg");msg.className="msg show";
+  if(st.noSchool){msg.classList.add("err");msg.innerHTML="⛔ Hoy no hay salida (fin de semana).";return;}
+  if(!st.isOpen){msg.classList.add("err");msg.innerHTML="⛔ Todavía no abre la ventana de "+DAYS[pickedDay()]+". Avisa desde las <b>"+fmt(st.open)+"</b>.";return;}
+  verified.students.forEach(function(s){seq++;records.push({id:seq,name:s.name,aula:s.aula,picker:verified.picker,state:"avisado",tstr:fmt(st.d),time:st.d});});
   var names=verified.students.map(function(s){return s.name;}).join(" y ");
-  msg.className="msg show ok";
-  msg.innerHTML="✓ Listo, <b>"+verified.picker+"</b>. El personal ya va a buscar a <b>"+names+"</b>.";
-  // limpiar para el siguiente
-  $("lastname").value=""; $("pickerpin").value=""; $("revealbox").style.display="none"; verified=null;
+  msg.className="msg show ok";msg.innerHTML="✓ Listo, <b>"+verified.picker+"</b>. Se avisó al aula de <b>"+names+"</b>.";
+  $("lastname").value="";$("pickerpin").value="";$("revealbox").style.display="none";verified=null;
+  renderAll();
 });
 
-function renderQueue(){
-  var ul=$("queue"); ul.innerHTML="";
-  var active=queue.filter(function(q){return !q.done;}).sort(function(a,b){return a.time-b.time;});
-  $("qcount").textContent=active.length;
-  $("qempty").style.display=active.length?"none":"block";
-  active.forEach(function(q,i){
-    var li=document.createElement("li"); li.className="qcard";
-    li.innerHTML='<div class="qnum">'+(i+1)+'</div>'+
-      '<div class="qmain"><div class="qname">'+q.name+' <span style="font-weight:400;color:var(--ink3)">· '+q.grade+'</span></div>'+
-      '<div class="qsub">Recoge: '+q.picker+' · <span class="qtime">avisó '+q.tstr+'</span></div></div>'+
-      '<span class="qtag">autorizado</span>'+
-      '<button class="qdone" data-id="'+q.id+'">entregado</button>';
+// ---------- AULA ----------
+function renderAula(){
+  var aula=$("aulasel").value,ul=$("aulalist");ul.innerHTML="";
+  var mine=records.filter(function(r){return r.aula===aula && r.state==="avisado";}).sort(function(a,b){return a.time-b.time;});
+  $("aulacount").textContent=mine.length;
+  $("aulaempty").style.display=mine.length?"none":"block";
+  mine.forEach(function(r){
+    var li=document.createElement("li");li.className="item";
+    li.innerHTML='<div class="badge aula">'+r.aula.replace(/[°\s]/g,"").slice(0,2)+'</div>'+
+      '<div class="imain"><div class="iname">'+r.name+'</div>'+
+      '<div class="isub">Recoge: '+r.picker+' · <span>avisó '+r.tstr+'</span></div></div>'+
+      '<span class="st avisado">avisado</span>'+
+      '<button class="act blue" data-id="'+r.id+'">salió →</button>';
     ul.appendChild(li);
   });
-  ul.querySelectorAll(".qdone").forEach(function(b){
-    b.addEventListener("click",function(){ var id=+b.getAttribute("data-id"); var e=queue.find(function(q){return q.id===id;}); if(e)e.done=true; renderQueue(); });
-  });
+  ul.querySelectorAll(".act").forEach(function(b){b.addEventListener("click",function(){
+    var r=records.find(function(x){return x.id==b.getAttribute("data-id");});if(r)r.state="camino";renderAll();
+  });});
 }
+
+// ---------- PUERTA ----------
+function renderPuerta(){
+  var ul=$("puertalist");ul.innerHTML="";
+  var incoming=records.filter(function(r){return r.state==="camino";}).sort(function(a,b){return a.time-b.time;});
+  $("puertacount").textContent=incoming.length;
+  $("puertaempty").style.display=incoming.length?"none":"block";
+  incoming.forEach(function(r,i){
+    var li=document.createElement("li");li.className="item";
+    li.innerHTML='<div class="badge puerta">'+(i+1)+'</div>'+
+      '<div class="imain"><div class="iname">'+r.name+' <span style="font-weight:400;color:var(--ink3)">· '+r.aula+'</span></div>'+
+      '<div class="isub">Entregar a: '+r.picker+'</div></div>'+
+      '<span class="st camino">en camino</span>'+
+      '<button class="act green" data-id="'+r.id+'">entregado</button>';
+    ul.appendChild(li);
+  });
+  ul.querySelectorAll(".act").forEach(function(b){b.addEventListener("click",function(){
+    var r=records.find(function(x){return x.id==b.getAttribute("data-id");});if(r)r.state="entregado";renderAll();
+  });});
+}
+
+function renderAll(){renderAula();renderPuerta();}
 
 $("simnow").addEventListener("click",function(){
   simulatedPeak=!simulatedPeak;
   this.textContent=simulatedPeak?"● en hora pico (simulada)":"simular hora pico";
-  this.style.color=simulatedPeak?"var(--brand)":""; this.style.fontWeight=simulatedPeak?"700":""; tick();
+  this.style.color=simulatedPeak?"var(--brand)":"";this.style.fontWeight=simulatedPeak?"700":"";tick();
 });
 $("daypick").addEventListener("change",tick);
-tick();
+tick();renderAll();
 </script>
 </body>
 </html>
