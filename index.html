@@ -80,6 +80,100 @@
   .act.green{border-color:var(--brand);color:var(--brand)} .act.green:hover{background:var(--brand-soft)}
   .empty{padding:22px 14px;text-align:center;color:var(--ink3);font-size:12.5px}
   .aulapick{margin-bottom:10px}
+  .lanepick{margin-top:11px;padding-top:10px;border-top:1px solid #bcd8c4}
+  .lanelab{font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:7px}
+  .lanes{display:flex;gap:8px}
+  .lane{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;
+    border:1.5px solid #bcd8c4;background:#fff;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s}
+  .lane:hover{border-color:var(--brand)}
+  .lane.sel{background:var(--brand);border-color:var(--brand)}
+  .lnum{width:24px;height:24px;border-radius:50%;background:#eaf2ec;color:var(--brand);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .lane.sel .lnum{background:#fff;color:var(--brand)}
+  .ltxt{font-size:9.5px;color:var(--ink3);line-height:1.2;text-align:center}
+  .lane.sel .ltxt{color:#e4efe6}
+  .pos{flex:1;padding:8px 4px;border:1.5px solid #bcd8c4;background:#fff;border-radius:10px;
+    cursor:pointer;font-family:inherit;transition:.15s;display:flex;justify-content:center}
+  .pos:hover{border-color:var(--brand)}
+  .pos.sel{background:var(--brand);border-color:var(--brand)}
+  .ptxt{font-size:11px;font-weight:700;color:var(--ink2)}
+  .pos.sel .ptxt{color:#fff}
+  .posbadge{font-size:8.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.03em}
+  .corrmap{margin:0 0 12px;padding:10px;background:#f7f6f0;border:1px solid var(--line);border-radius:11px}
+  .cmtitle{font-size:9.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+  .cmgrid{display:grid;grid-template-columns:26px 1fr 1fr 1fr 22px;gap:4px;align-items:stretch}
+  .cmcell{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .cmhdr{font-size:11px;font-weight:800;color:var(--blue);line-height:1.15;text-align:center}
+  .cmhdr span{font-size:7px;font-weight:400;color:var(--ink3);line-height:1.1}
+  .cmposlbl{font-size:11px;font-weight:800;color:var(--ink3);background:#eeece4;border-radius:5px}
+  .cmcorner{font-size:7.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.02em;text-align:center;line-height:1.1}
+  .cmv{display:flex;gap:6px;align-items:stretch}
+  .cmbldgv{background:#e8e6df;border:1px solid #cfccc0;border-radius:6px;
+    display:flex;align-items:center;justify-content:center}
+  .cmbldgv span{writing-mode:vertical-rl;font-size:7.5px;font-weight:700;
+    color:#5f5e5a;letter-spacing:.05em;white-space:nowrap}
+  .cmvbody{flex:1;min-width:0}
+  .cmvhead{display:flex;gap:4px;align-items:flex-end;margin-bottom:4px}
+  .cmvrow{display:flex;gap:4px;margin-bottom:4px}
+  .cmvfoot{display:flex;gap:4px}
+  .cmvpos,.cmvdir{width:46px;flex:none;font-size:7.5px;font-weight:700;color:var(--ink3);
+    text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center}
+  .cmvdir{color:var(--blue)}
+  .cmvlane{flex:1;text-align:center;font-size:11px;font-weight:800;color:var(--blue);line-height:1.1}
+  .cmgrid .cmslot{height:26px;border-radius:5px}
+  .cmslot.pend{opacity:.72;border-style:dashed !important}   /* apaisado: el largo del vehículo va en el carril */
+  .cmbldg{background:#e8e6df;border:1px solid #cfccc0;border-radius:6px;padding:4px 8px;
+    font-size:9px;font-weight:700;color:#5f5e5a;text-align:center;letter-spacing:.03em;margin-bottom:6px}
+  .cmhead{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+  .cmdirs{flex:1;display:flex;justify-content:space-between;align-items:center;
+    font-size:8px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em}
+  .cmdirmid{font-weight:400;text-transform:none;letter-spacing:0;color:#a9aca6;font-size:7.5px}
+  .cmldesc{display:block;font-size:6.5px;font-weight:400;color:var(--ink3);text-transform:none;
+    letter-spacing:0;line-height:1.1;margin-top:1px}
+  .cmrow{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+  .cmlane{width:42px;font-size:10px;font-weight:800;color:var(--blue);text-align:center;flex:none}
+  .cmslots{display:flex;gap:4px;flex:1}
+  .cmslot{flex:1;height:30px;border-radius:6px;border:1px dashed #cfd0c4;background:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+  .cmslot.on{border:1px solid var(--brand);background:var(--brand-soft)}
+  .cmname{font-size:8px;font-weight:700;color:var(--brand);line-height:1;text-align:center;padding:0 2px}
+  .cmsub{font-size:6.5px;color:var(--ink3);line-height:1.1}
+  .cmfoot{font-size:9px;color:var(--ink3);margin-top:5px;text-align:center}
+  .lanegroup{font-size:10px;font-weight:800;color:var(--blue);background:var(--blue-soft);
+    padding:3px 8px;border-radius:5px;margin:8px 0 2px;display:inline-block}
+  .sibs{font-size:9.5px;font-weight:700;color:#8a5e12;background:var(--gold-soft);
+    padding:2px 6px;border-radius:10px;margin-left:6px;white-space:nowrap}
+  .wait{font-size:10px;font-weight:700;color:var(--ink3);white-space:nowrap}
+  .wait.alto{color:var(--alert)}
+  .colors{display:flex;flex-wrap:wrap;gap:6px}
+  .col{width:30px;height:30px;border-radius:8px;border:2px solid #d8d8d0;cursor:pointer;
+    position:relative;transition:.15s;padding:0}
+  .col:hover{transform:scale(1.08)}
+  .col.sel{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
+  .col.sel::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;font-size:14px;font-weight:900}
+  .col.sel.claro::after{color:#1c2b24} .col.sel.oscuro::after{color:#fff}
+  .lanehint{font-size:10.5px;color:var(--ink3);margin-top:6px;line-height:1.35}
+  .lanebadge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+    border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:800;flex:none}
+  .geobox{margin:8px 0 12px;padding:9px 11px;border:1px dashed var(--line);border-radius:10px;background:#fbfaf5}
+  .geolab{font-size:11.5px;color:var(--ink2);display:flex;gap:6px;align-items:center;cursor:pointer}
+  .georange{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:var(--ink3)}
+  .georange input{flex:1}
+  .geostat{font-size:11px;color:var(--ink2);margin-top:5px;font-weight:600}
+  .geostat.dispara{color:var(--brand)}
+  .trackbox{margin-top:12px;padding:11px;border:1px solid #a9cdeb;background:#eaf2fa;border-radius:11px}
+  .trow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #d4e4f2}
+  .trow:last-child{border-bottom:none}
+  .tname{font-weight:700;font-size:13px;flex:1}
+  .tstep{display:flex;gap:4px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:#cfd8dd}
+  .dot.on{background:var(--brand)}
+  .tlabel{font-size:11px;font-weight:700;color:var(--brand)}
+  .tlabel.wait{color:#8a5e12}
+  .hist{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .hrow{display:flex;gap:8px;font-size:11.5px;color:var(--ink2);padding:3px 0}
+  .hrow .ht{color:var(--ink3);font-variant-numeric:tabular-nums;white-space:nowrap}
   .foot{margin-top:16px;font-size:11px;color:var(--ink3);text-align:center;line-height:1.6}
 </style>
 </head>
@@ -123,6 +217,17 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d8b83" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           <span>El nombre no se muestra hasta que el apellido y el PIN coincidan.</span>
         </div>
+        <div class="geobox">
+          <label class="geolab"><input type="checkbox" id="autoaviso"> Avisar automáticamente al acercarme</label>
+          <div id="georow" style="display:none">
+            <div class="georange">
+              <span>lejos</span>
+              <input type="range" id="dist" min="0" max="50" value="0">
+              <span>colegio</span>
+            </div>
+            <div class="geostat" id="geostat">Distancia al colegio: 5.0 km · aviso automático a 2 km</div>
+          </div>
+        </div>
         <button class="btn" id="reveal">Verificar</button>
         <div id="revealbox" class="revealbox" style="display:none">
           <div class="rlabel">Recoger a</div>
@@ -131,6 +236,30 @@
           <button class="btn" id="notify" style="margin-top:10px">Avisar que voy en camino</button>
         </div>
         <div class="msg" id="msg"></div>
+
+        <!-- seguimiento en vivo -->
+        <div id="track" class="trackbox" style="display:none">
+          <div class="rlabel">Seguimiento</div>
+          <div id="tracklist"></div>
+          <div class="lanepick" id="lanepick">
+            <div class="lanelab">Ya estoy en la zona de carga — ¿en qué carril?</div>
+            <div class="lanes">
+              <button class="lane" data-lane="1"><span class="lnum">1</span><span class="ltxt">junto al edificio</span></button>
+              <button class="lane" data-lane="2"><span class="lnum">2</span><span class="ltxt">del medio</span></button>
+              <button class="lane" data-lane="3"><span class="lnum">3</span><span class="ltxt">exterior</span></button>
+            </div>
+            <div class="lanelab" style="margin-top:10px">¿En qué posición del carril? <span style="font-weight:400;color:var(--ink3)">(1 = la más adelantada)</span></div>
+            <div class="lanes">
+              <button class="pos" data-pos="1"><span class="ptxt">1</span></button>
+              <button class="pos" data-pos="2"><span class="ptxt">2</span></button>
+              <button class="pos" data-pos="3"><span class="ptxt">3</span></button>
+              <button class="pos" data-pos="4"><span class="ptxt">4</span></button>
+            </div>
+            <div class="lanelab" style="margin-top:10px">Color de tu vehículo</div>
+            <div class="colors" id="colors"></div>
+            <div class="lanehint" id="lanehint">Selecciónalo al entrar al corredor: el personal de la puerta lo verá al instante.</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -153,8 +282,13 @@
       <div class="phead"><span class="role puerta">Puerta</span><h2>Entrega en la zona de carga</h2>
         <span class="count">en camino <b id="puertacount">0</b></span></div>
       <div class="pbody">
+        <div class="corrmap" id="corrmap"></div>
         <ul class="list" id="puertalist"></ul>
         <div class="empty" id="puertaempty">Nadie va en camino todavía. Cuando un maestro confirma la salida, el niño aparece aquí.</div>
+        <div class="hist">
+          <div class="rlabel" style="margin-bottom:6px">Retiros de hoy · <span id="histcount">0</span></div>
+          <div id="histlist"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -200,14 +334,30 @@ function norm(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300
 function findCred(last,pin){ var nl=norm(last); return CREDENTIALS.find(function(c){return norm(c.last)===nl && c.pin===pin;}); }
 
 // records: {id, name, aula, picker, state:'avisado'|'camino'|'entregado', tstr}
-var records=[], seq=0, simulatedPeak=false, verified=null;
+var records=[], seq=0, simulatedPeak=false, verified=null, carrilSel=null, posSel=null, colorSel=null, tandaId=0;
+var POSTXT={"1":"posición 1 (adelante)","2":"posición 2","3":"posición 3","4":"posición 4 (atrás)"};
+var POSCORTO={"1":"1","2":"2","3":"3","4":"4"};
+var COLORES=[
+ {id:"blanco", nom:"Blanco", hex:"#ffffff", claro:true},
+ {id:"gris",   nom:"Gris",   hex:"#9aa0a6", claro:false},
+ {id:"negro",  nom:"Negro",  hex:"#2b2f33", claro:false},
+ {id:"plata",  nom:"Plata",  hex:"#d5d8dc", claro:true},
+ {id:"rojo",   nom:"Rojo",   hex:"#c0392b", claro:false},
+ {id:"azul",   nom:"Azul",   hex:"#2465a8", claro:false},
+ {id:"verde",  nom:"Verde",  hex:"#2d7a52", claro:false},
+ {id:"beige",  nom:"Beige",  hex:"#d9c9a3", claro:true},
+ {id:"vino",   nom:"Vino",   hex:"#7b2d3b", claro:false},
+ {id:"amarillo",nom:"Amarillo",hex:"#e2b33c", claro:true}
+];
+function colorDe(id){ return COLORES.find(function(c){return c.id===id;}) || null; }
 var $=function(id){return document.getElementById(id);};
 var DAYS=["dom","lunes","martes","miércoles","jueves","viernes","sáb"];
+var AVISO_ANTES=20;   // los avisos se aceptan desde 20 min antes de la salida
 
 function pickedDay(){var v=$("daypick").value;return v==="auto"?new Date().getDay():+v;}
 function openHM(dow){if(dow===5)return{h:13,m:30};if(dow>=1&&dow<=4)return{h:14,m:0};return null;}
 function now(){return simulatedPeak?peakTime():new Date();}
-function peakTime(){var d=new Date(),o=openHM(pickedDay())||{h:14,m:0};d.setHours(o.h,o.m+5,0,0);return d;}
+function peakTime(){var d=new Date(),o=openHM(pickedDay())||{h:14,m:0};d.setHours(o.h,o.m-10,0,0);return d;}   // 10 min antes: dentro de la ventana de avisos
 function fmt(d){var h=d.getHours(),m=d.getMinutes(),ap=h>=12?"PM":"AM",h12=h%12||12;return h12+":"+(m<10?"0":"")+m+" "+ap;}
 function tick(){
   var d=now();$("clock").textContent=fmt(d);
@@ -215,8 +365,11 @@ function tick(){
   var dow=pickedDay();$("daylbl").textContent=DAYS[dow];var o=openHM(dow);
   if(!o){$("winrange").textContent="no hay salida";$("winlbl").classList.add("closed");return{isOpen:false,d:d,noSchool:true};}
   var open=new Date(d);open.setHours(o.h,o.m,0,0);
-  $("winrange").textContent=fmt(open);var isOpen=d>=open;$("winlbl").classList.toggle("closed",!isOpen);
-  return{open:open,isOpen:isOpen,d:d};
+  var abre=new Date(open); abre.setMinutes(abre.getMinutes()-AVISO_ANTES);   // ventana de avisos
+  $("winrange").innerHTML=fmt(open)+' <span style="font-weight:400;color:var(--ink3)">· avisos desde '+fmt(abre)+'</span>';
+  var isOpen=d>=abre;                       // se puede avisar desde 20 min antes
+  $("winlbl").classList.toggle("closed",!isOpen);
+  return{open:open,abre:abre,isOpen:isOpen,d:d};
 }
 setInterval(tick,1000);
 
@@ -243,11 +396,16 @@ $("reveal").addEventListener("click",function(){
 $("notify").addEventListener("click",function(){
   if(!verified)return;var st=tick(),msg=$("msg");msg.className="msg show";
   if(st.noSchool){msg.classList.add("err");msg.innerHTML="⛔ Hoy no hay salida (fin de semana).";return;}
-  if(!st.isOpen){msg.classList.add("err");msg.innerHTML="⛔ Todavía no abre la ventana de "+DAYS[pickedDay()]+". Avisa desde las <b>"+fmt(st.open)+"</b>.";return;}
-  verified.students.forEach(function(s){seq++;records.push({id:seq,name:s.name,aula:s.aula,picker:verified.picker,state:"avisado",tstr:fmt(st.d),time:st.d});});
+  if(!st.isOpen){msg.classList.add("err");msg.innerHTML="⛔ Todavía no abre la ventana de avisos de "+DAYS[pickedDay()]+". Puedes avisar desde las <b>"+fmt(st.abre)+"</b> ("+AVISO_ANTES+" min antes de la salida de las "+fmt(st.open)+").";return;}
+  tandaId++;
+  verified.students.forEach(function(s){seq++;records.push({id:seq,name:s.name,aula:s.aula,picker:verified.picker,carril:null,pos:null,color:null,state:"avisado",tstr:fmt(st.d),time:st.d,mine:true,tanda:tandaId});});
   var names=verified.students.map(function(s){return s.name;}).join(" y ");
   msg.className="msg show ok";msg.innerHTML="✓ Listo, <b>"+verified.picker+"</b>. Se avisó al aula de <b>"+names+"</b>.";
   $("lastname").value="";$("pickerpin").value="";$("revealbox").style.display="none";verified=null;
+  carrilSel=null;posSel=null;colorSel=null;
+  document.querySelectorAll(".lane,.pos,.col").forEach(function(o){o.classList.remove("sel");});
+  $("lanehint").textContent="Selecciónalo al entrar al corredor: el personal de la puerta lo verá al instante.";
+
   renderAll();
 });
 
@@ -261,7 +419,7 @@ function renderAula(){
     var li=document.createElement("li");li.className="item";
     li.innerHTML='<div class="badge aula">'+r.aula.replace(/[°\s]/g,"").slice(0,2)+'</div>'+
       '<div class="imain"><div class="iname">'+r.name+'</div>'+
-      '<div class="isub">Recoge: '+r.picker+' · <span>avisó '+r.tstr+'</span></div></div>'+
+      '<div class="isub">Recoge: '+r.picker+(r.carril? ' · carril <b>'+r.carril+'</b>'+(r.pos?' ('+POSTXT[r.pos]+')':''):'')+' · <span>avisó '+r.tstr+'</span></div></div>'+
       '<span class="st avisado">avisado</span>'+
       '<button class="act blue" data-id="'+r.id+'">salió →</button>';
     ul.appendChild(li);
@@ -272,31 +430,238 @@ function renderAula(){
 }
 
 // ---------- PUERTA ----------
+function avanzarCarril(lane){
+ // Los vehículos que quedan en el carril avanzan hacia la posición 1 (la más adelantada),
+ // igual que en la fila real cuando el de adelante se va.
+ if(!lane) return;
+ var enCarril = records.filter(function(r){ return (r.state==="camino"||r.state==="avisado") && r.carril===lane && r.pos; });
+ // agrupar por vehículo (mismo acompañante y misma posición viajan juntos)
+ var vehiculos = [];
+ enCarril.forEach(function(r){
+   var v = vehiculos.find(function(x){ return x.picker===r.picker && x.pos===r.pos; });
+   if(v) v.regs.push(r); else vehiculos.push({picker:r.picker, pos:r.pos, regs:[r]});
+ });
+ vehiculos.sort(function(a,b){ return (+a.pos)-(+b.pos); });   // el de menor número va delante
+ // reasignar posiciones consecutivas desde la 1
+ vehiculos.forEach(function(v,i){
+   var nueva = String(i+1);
+   if(v.pos!==nueva) v.regs.forEach(function(r){ r.pos=nueva; r.avanzo=true; });
+ });
+}
+function esperaMin(r){ return Math.max(0, Math.round((now()-r.time)/60000)); }
+
 function renderPuerta(){
-  var ul=$("puertalist");ul.innerHTML="";
+  var ul=$("puertalist"); ul.innerHTML="";
   var incoming=records.filter(function(r){return r.state==="camino";}).sort(function(a,b){return a.time-b.time;});
   $("puertacount").textContent=incoming.length;
   $("puertaempty").style.display=incoming.length?"none":"block";
-  incoming.forEach(function(r,i){
-    var li=document.createElement("li");li.className="item";
-    li.innerHTML='<div class="badge puerta">'+(i+1)+'</div>'+
-      '<div class="imain"><div class="iname">'+r.name+' <span style="font-weight:400;color:var(--ink3)">· '+r.aula+'</span></div>'+
-      '<div class="isub">Entregar a: '+r.picker+'</div></div>'+
-      '<span class="st camino">en camino</span>'+
-      '<button class="act green" data-id="'+r.id+'">entregado</button>';
-    ul.appendChild(li);
+  // El mapa muestra todo vehículo YA UBICADO en el corredor, aunque el niño siga en el aula:
+  // el carro está físicamente ahí y el personal necesita verlo.
+  var enCorredor=records.filter(function(r){
+    return (r.state==="avisado"||r.state==="camino") && r.carril && r.pos;
   });
+  renderMapa(enCorredor);
+
+  // hermanos: mismo acompañante = mismo vehículo
+  var porPicker={};
+  incoming.forEach(function(r){ (porPicker[r.picker]=porPicker[r.picker]||[]).push(r); });
+
+  // agrupar por carril: 1,2,3 y al final los que aún no informaron
+  var grupos=[["1","Carril 1 · junto al edificio"],["2","Carril 2 · del medio"],["3","Carril 3 · exterior"],[null,"Aún sin ubicar"]];
+  grupos.forEach(function(g){
+    var lista=incoming.filter(function(r){ return (g[0]===null)? !r.carril : r.carril===g[0]; });
+    if(!lista.length) return;
+    var h=document.createElement("li");
+    h.innerHTML='<span class="lanegroup">'+g[1]+' · '+lista.length+'</span>';
+    h.style.cssText="list-style:none;border:none;padding:0";
+    ul.appendChild(h);
+    lista.forEach(function(r){
+      var hermanos = porPicker[r.picker].length>1;
+      var min = esperaMin(r);
+      var li=document.createElement("li"); li.className="item";
+      var cv=colorDe(r.color);
+      var badgeEst = cv? ' style="background:'+cv.hex+';color:'+(cv.claro?'#1c2b24':'#fff')+';border:1.5px solid '+(cv.claro?'#c9c6bc':cv.hex)+'"' : '';
+      li.innerHTML='<div class="badge puerta"'+badgeEst+'>'+(r.pos||"?")+'</div>'+
+        '<div class="imain"><div class="iname">'+r.name+' <span style="font-weight:400;color:var(--ink3)">· '+r.aula+'</span>'+
+          (hermanos? '<span class="sibs">'+porPicker[r.picker].length+' en el mismo vehículo</span>':'')+'</div>'+
+        '<div class="isub">Entregar a: '+r.picker+(r.pos? ' · '+POSTXT[r.pos]:'')+(cv? ' · <b>'+cv.nom.toLowerCase()+'</b>':'')+'</div></div>'+
+        '<span class="wait'+(min>=5?' alto':'')+'">'+min+' min</span>'+
+        '<button class="act green" data-id="'+r.id+'">entregado</button>';
+      ul.appendChild(li);
+    });
+  });
+
   ul.querySelectorAll(".act").forEach(function(b){b.addEventListener("click",function(){
-    var r=records.find(function(x){return x.id==b.getAttribute("data-id");});if(r)r.state="entregado";renderAll();
+    var r=records.find(function(x){return x.id==b.getAttribute("data-id");});
+    if(r){
+      var lane=r.carril;
+      r.state="entregado"; r.doneT=Date.now(); r.doneStr=fmt(now());
+      avanzarCarril(lane);   // los que quedan suben de posición
+    }
+    renderAll();
   });});
 }
 
-function renderAll(){renderAula();renderPuerta();}
+function renderMapa(incoming){
+  var m=$("corrmap");
+  // Edificio a la DERECHA. Columnas de izquierda a derecha: 3 (exterior), 2 (medio), 1 (junto al edificio).
+  // Los vehículos entran por abajo (posición 4) y avanzan hacia la salida (posición 1, arriba).
+  var LANEDESC={"1":"junto al edificio","2":"del medio","3":"exterior"};
+  var ORDEN=["3","2","1"];   // el 1 queda pegado al edificio, a la derecha
+
+  function ocupante(lane,pos){
+    var v=incoming.filter(function(r){return r.carril===lane && r.pos===pos;});
+    if(!v.length) return null;
+    return {nombres:v.map(function(r){return r.name.split(" ")[0];}),
+            aulas:v.map(function(r){return r.aula;}), color:v[0].color, n:v.length,
+            avanzo:v.some(function(r){return r.avanzo;}),
+            esperando:v.every(function(r){return r.state==="avisado";})};
+  }
+
+  var html='<div class="cmtitle">Corredor de carga · vista desde el edificio</div>';
+  html+='<div class="cmgrid">';
+  //  encabezado
+  html+='<div class="cmcell cmcorner">salida ↑</div>';
+  ORDEN.forEach(function(l){
+    html+='<div class="cmcell cmhdr"><b>'+l+'</b><span>'+LANEDESC[l]+'</span></div>';
+  });
+  html+='<div class="cmcell"></div>';
+  //  filas de posiciones (1 arriba = adelante)
+  ["1","2","3","4"].forEach(function(pos,i){
+    html+='<div class="cmcell cmposlbl">'+pos+'</div>';
+    ORDEN.forEach(function(lane){
+      var o=ocupante(lane,pos);
+      if(o){
+        var c=colorDe(o.color);
+        var est=c? ' style="background:'+c.hex+';border-color:'+c.hex+'"':'';
+        var txt=c? (c.claro?'#1c2b24':'#ffffff'):'var(--brand)';
+        var sub=c? (c.claro?'#4a5b52':'#e8eae9'):'var(--ink3)';
+        var sub2 = o.esperando? "esperando al niño" : (o.n>1? o.n+" niños" : o.aulas[0]);
+        html+='<div class="cmslot on'+(o.esperando?" pend":"")+'"'+est+'>'+
+              '<div class="cmname" style="color:'+txt+'">'+o.nombres.join(" + ")+'</div>'+
+              '<div class="cmsub" style="color:'+sub+'">'+sub2+'</div></div>';
+      } else html+='<div class="cmslot"></div>';
+    });
+    // barra del edificio: ocupa las 4 filas (solo se dibuja en la primera)
+    if(i===0) html+='<div class="cmbldgv" style="grid-row:span 4"><span>EDIFICIO CEMEP · aquí esperan los niños</span></div>';
+  });
+  html+='<div class="cmcell cmcorner">entran ↑</div>';
+  html+='</div>';
+
+  var sinUbicar=records.filter(function(r){return (r.state==="avisado"||r.state==="camino") && (!r.carril||!r.pos);}).length;
+  html+='<div class="cmfoot">'+(sinUbicar? sinUbicar+" vehículo(s) en camino, aún sin ubicar" : "Todos los vehículos en camino están ubicados")+'</div>';
+  m.innerHTML=html;
+}
+
+function renderTrack(){
+ var box=$("track"), list=$("tracklist");
+ // mostrar los avisos de la última familia verificada en esta sesión
+ var mios = records.filter(function(r){ return r.tanda===tandaId && r.state!=="entregado"; });
+ if(!mios.length){ box.style.display="none"; return; }
+ box.style.display="block"; list.innerHTML="";
+ mios.forEach(function(r){
+   var paso = r.state==="avisado"?1:(r.state==="camino"?2:3);
+   var txt  = r.avanzo && r.state==="camino"?"Avanzó a la posición "+r.pos
+            : r.state==="avisado"?"Avisado · el aula lo está preparando"
+            : r.state==="camino" ?"Va en camino a la zona de carga"
+            :                      "Entregado";
+   var d=document.createElement("div"); d.className="trow";
+   var cc=colorDe(r.color);
+   var lb = r.carril? ' <span style="font-weight:400;font-size:11px;color:var(--ink3)">carril '+r.carril+(r.pos?' · '+POSTXT[r.pos]:'')+(cc?' · '+cc.nom.toLowerCase():'')+'</span>' : '';
+   d.innerHTML='<div class="tname">'+r.name+lb+'</div>'+
+     '<div class="tstep">'+
+       '<span class="dot'+(paso>=1?' on':'')+'"></span>'+
+       '<span class="dot'+(paso>=2?' on':'')+'"></span>'+
+       '<span class="dot'+(paso>=3?' on':'')+'"></span>'+
+     '</div>'+
+     '<div class="tlabel'+(paso<2?' wait':'')+'">'+txt+'</div>';
+   list.appendChild(d);
+ });
+}
+function renderHist(){
+ var h=$("histlist"); if(!h) return;
+ var ent = records.filter(function(r){return r.state==="entregado";})
+                  .sort(function(a,b){return b.doneT-a.doneT;});
+ $("histcount").textContent=ent.length;
+ h.innerHTML = ent.length? "" : '<div style="font-size:11.5px;color:var(--ink3)">Aún no hay retiros registrados hoy.</div>';
+ ent.forEach(function(r){
+   var d=document.createElement("div"); d.className="hrow";
+   d.innerHTML='<span class="ht">'+r.doneStr+'</span><span><b>'+r.name+'</b> · '+r.aula+' — retirado por '+r.picker+' (carril '+(r.carril||'?')+(r.pos?', '+POSTXT[r.pos]:'')+(colorDe(r.color)?', '+colorDe(r.color).nom.toLowerCase():'')+')</span>';
+   h.appendChild(d);
+ });
+}
+function renderAll(){renderAula();renderPuerta();renderTrack();renderHist();}
 
 $("simnow").addEventListener("click",function(){
   simulatedPeak=!simulatedPeak;
   this.textContent=simulatedPeak?"● en hora pico (simulada)":"simular hora pico";
   this.style.color=simulatedPeak?"var(--brand)":"";this.style.fontWeight=simulatedPeak?"700":"";tick();
+});
+// ===== aviso automático por ubicación (simulado con el control de distancia) =====
+var RADIO_KM=2.0;      // radio de disparo del aviso automático
+var avisoAutoHecho=false;
+$("autoaviso").addEventListener("change",function(){
+  $("georow").style.display=this.checked?"block":"none";
+  avisoAutoHecho=false;
+  if(this.checked){ $("dist").value=0; }    // empieza lejos
+  actualizaGeo();
+});
+$("dist").addEventListener("input",actualizaGeo);
+function distKm(){ return (50-$("dist").value)/10; }   // 0 a 5 km
+function actualizaGeo(){
+  var km=distKm(), g=$("geostat");
+  if(avisoAutoHecho){
+    g.textContent="✓ Aviso enviado automáticamente al entrar al radio de "+RADIO_KM+" km";
+    g.classList.add("dispara"); return;
+  }
+  g.textContent="Distancia al colegio: "+km.toFixed(1)+" km · aviso automático a "+RADIO_KM+" km";
+  g.classList.toggle("dispara", km<=RADIO_KM);
+  if($("autoaviso").checked && km<=RADIO_KM && verified){
+    avisoAutoHecho=true;
+    g.textContent="✓ Aviso enviado automáticamente al entrar al radio de "+RADIO_KM+" km";
+    g.classList.add("dispara");
+    $("notify").click();
+  }
+}
+// ===== selector de carril =====
+function infoUbicacion(){
+  var n=0;
+  records.forEach(function(r){ if(r.tanda===tandaId && r.state!=="entregado"){ r.carril=carrilSel; r.pos=posSel; r.color=colorSel; n++; } });
+  var txt="";
+  if(!n) txt="Primero avisa que vas en camino.";
+  else if(carrilSel && posSel) txt="✓ Carril <b>"+carrilSel+"</b>, <b>"+POSTXT[posSel]+"</b>"+(colorSel? ", vehículo <b>"+colorDe(colorSel).nom.toLowerCase()+"</b>":"")+" — informado al personal.";
+  else if(carrilSel) txt="✓ Carril <b>"+carrilSel+"</b> informado. Indica también en qué parte del carril.";
+  else txt="Indica también el carril.";
+  $("lanehint").innerHTML=txt;
+  renderAll();
+}
+(function pintaColores(){
+  var cont=$("colors"); if(!cont) return;
+  COLORES.forEach(function(c){
+    var b=document.createElement("button");
+    b.className="col "+(c.claro?"claro":"oscuro");
+    b.style.background=c.hex; b.title=c.nom; b.setAttribute("data-col",c.id);
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".col").forEach(function(o){o.classList.remove("sel");});
+      b.classList.add("sel"); colorSel=c.id; infoUbicacion();
+    });
+    cont.appendChild(b);
+  });
+})();
+document.querySelectorAll(".pos").forEach(function(bt){
+  bt.addEventListener("click",function(){
+    document.querySelectorAll(".pos").forEach(function(o){o.classList.remove("sel");});
+    bt.classList.add("sel"); posSel=bt.getAttribute("data-pos");
+    infoUbicacion();
+  });
+});
+document.querySelectorAll(".lane").forEach(function(bt){
+  bt.addEventListener("click",function(){
+    document.querySelectorAll(".lane").forEach(function(o){o.classList.remove("sel");});
+    bt.classList.add("sel");
+    carrilSel=bt.getAttribute("data-lane");
+    infoUbicacion();
+  });
 });
 $("daypick").addEventListener("change",tick);
 tick();renderAll();
