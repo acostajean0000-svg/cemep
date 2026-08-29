@@ -1,0 +1,58 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEMEP · Sistema de recogida — Estudio y demostración</title><style>
+:root{--brand:#1f5c3d;--gold:#c98a2b;--blue:#185fa5;--alert:#a8352a;--paper:#f4f2ea;--ink:#26251f;--ink2:#4a4a44;--ink3:#8a897f;--line:#d8d5c8}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink);margin:0;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:34px 20px 50px}
+h1{font-size:26px;color:var(--brand);margin:0} h1 span{color:var(--gold)}
+.sub{color:var(--ink2);font-size:14.5px;margin:6px 0 26px}
+.tarj{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;display:flex;gap:16px;align-items:flex-start}
+.tnum{flex:none;width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.tarj h2{font-size:16px;margin:2px 0 5px;color:var(--ink)}
+.tarj p{margin:0 0 10px;font-size:13.5px;color:var(--ink2)}
+.bt{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:9px}
+.bt.sec{background:var(--blue)} .bt.ter{background:var(--gold)}
+.hall{background:#fdf3f2;border-left:4px solid var(--alert);border-radius:0 10px 10px 0;padding:12px 16px;margin:20px 0;font-size:13.5px}
+.hall b{color:var(--alert)}
+.nota{font-size:11.5px;color:var(--ink3);margin-top:26px;border-top:1px solid var(--line);padding-top:12px}
+.datos{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 24px}
+.dato{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 13px;text-align:center}
+.dato b{display:block;font-size:21px;color:var(--brand)} .dato span{font-size:11px;color:var(--ink3)}
+</style></head><body><div class="wrap">
+<h1>CEMEP<span>·</span>Recogida</h1>
+<div class="sub">Estudio y demostración del sistema de salida vehicular · Colegio CEMEP, Calle Shalom</div>
+
+<div class="datos">
+ <div class="dato"><b>133</b><span>vehículos en el pico</span></div>
+ <div class="dato"><b>2 min</b><span>y la calle Shalom se llena (hoy)</span></div>
+ <div class="dato"><b>1h 23m → 22m</b><span>despacho: hoy vs con pre-aviso</span></div>
+</div>
+
+<div class="hall">La congestión no la causa el tráfico ni el espacio: <b>el niño no está listo cuando llega el carro</b>. Cada parada de 2-3 minutos represa toda la fila. El pre-aviso por app baja la parada a ~35 segundos y la fila deja de acumularse.</div>
+
+<div class="tarj"><div class="tnum">1</div><div>
+ <h2>La propuesta técnica</h2>
+ <p>Diagnóstico, solución en dos capas (pre-aviso + corredor de tres carriles), demanda calculada, tiempos de anticipación del aviso, cronograma de seis semanas e indicadores de medición.</p>
+ <a class="bt" href="Propuesta_final_CEMEP.pdf">Abrir la propuesta (PDF)</a>
+</div></div>
+
+<div class="tarj"><div class="tnum">2</div><div>
+ <h2>La simulación en vivo</h2>
+ <p>Los 133 vehículos del pico, en tiempo real. Compare el sistema de hoy contra el propuesto y vea cómo la fila desborda la calle en un caso y se mantiene en cero en el otro.</p>
+ <a class="bt sec" href="Simulacion_flujo_CEMEP.html">Abrir la simulación</a>
+</div></div>
+
+<div class="tarj"><div class="tnum">3</div><div>
+ <h2>El croquis del sitio</h2>
+ <p>Las capas del sistema sobre el plano real: corredor de carga, parqueos diagonales, carril de entrada y parqueos perpendiculares.</p>
+ <a class="bt ter" href="Croquis_final_CEMEP.png">Ver el croquis</a>
+</div></div>
+
+<div class="tarj"><div class="tnum">4</div><div>
+ <h2>La aplicación (demostración funcional)</h2>
+ <p>Tres pantallas — padre, aula y puerta — sincronizadas: pre-aviso, ubicación por carril y posición con el color del vehículo, mapa del corredor, avance automático, autorizaciones de un solo uso y alerta de retraso. El acceso a cada pantalla requiere la clave entregada por el colegio.</p>
+ <a class="bt" href="./">Abrir la app (requiere clave de acceso)</a>
+</div></div>
+
+<div class="nota">Prototipo de estudio elaborado para el Colegio CEMEP. Los datos de la demostración son ficticios. Las cifras de la propuesta son cálculos de planificación a partir de las medidas del sitio y deben validarse con el conteo en hora pico previsto en el cronograma.</div>
+</div></body></html>

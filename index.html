@@ -47,6 +47,10 @@
   /* overlay selector */
   .nolink{position:fixed;inset:0;background:var(--paper);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center}
   .nolink.oculto{display:none}
+  .nlform{display:flex;gap:8px;max-width:340px;margin:14px auto 0}
+  .nlkey{flex:1;text-transform:none}
+  .nlgo{width:auto;padding:10px 18px;margin:0}
+  .nlerr{color:var(--alert);font-size:11.5px;margin-top:8px;min-height:15px;font-weight:600}
   .nltitle{font-size:18px;font-weight:800;color:var(--alert);margin:10px 0 8px}
   .nltext{font-size:13px;color:var(--ink2);line-height:1.6;max-width:430px;margin:0 auto}
   .rolepick{position:fixed;inset:0;background:var(--paper);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px}
@@ -176,6 +180,8 @@
   .cmname{font-size:8px;font-weight:700;color:var(--brand);line-height:1;text-align:center;padding:0 2px}
   .cmsub{font-size:6.5px;color:var(--ink3);line-height:1.1}
   .cmfoot{font-size:9px;color:var(--ink3);margin-top:5px;text-align:center}
+  .latealert{display:none;background:#fdf3f2;border:1.5px solid var(--alert);color:#7a2620;
+    border-radius:9px;padding:8px 11px;font-size:12px;margin-bottom:10px}
   .lanegroup{font-size:10px;font-weight:800;color:var(--blue);background:var(--blue-soft);
     padding:3px 8px;border-radius:5px;margin:8px 0 2px;display:inline-block}
   .sibs{font-size:9.5px;font-weight:700;color:#8a5e12;background:var(--gold-soft);
@@ -199,6 +205,12 @@
   .georange input{flex:1}
   .geostat{font-size:11px;color:var(--ink2);margin-top:5px;font-weight:600}
   .geostat.dispara{color:var(--brand)}
+  .authbox{margin-top:10px;padding-top:9px;border-top:1px dashed #bcd8c4}
+  .authlink{background:none;border:none;color:var(--blue);font-size:11.5px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
+  .btn.sec{background:var(--blue);margin-top:0}
+  .authout{margin-top:8px;font-size:12px;color:var(--ink2);line-height:1.5}
+  .authcode{font-size:20px;font-weight:800;letter-spacing:.12em;color:var(--brand);background:var(--brand-soft);
+    border-radius:8px;padding:6px 12px;display:inline-block;margin:4px 0}
   .trackbox{margin-top:12px;padding:11px;border:1px solid #a9cdeb;background:#eaf2fa;border-radius:11px}
   .trow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #d4e4f2}
   .trow:last-child{border-bottom:none}
@@ -220,8 +232,13 @@
     <div class="rplogo">CEMEP<span>·</span>Recogida</div>
     <div class="nltitle">Acceso restringido</div>
     <div class="nltext">Cada pantalla de este sistema se abre con un <b>enlace de acceso propio</b>,
-    entregado por el colegio.<br><br>Abre el enlace que te asignaron (padres, aula o puerta).
-    Si no lo tienes, solicítalo en la administración del colegio.</div>
+    entregado por el colegio. Abre el enlace que te asignaron o escribe tu clave aquí:</div>
+    <div class="nlform">
+      <input class="txt nlkey" id="nlkey" autocomplete="off" placeholder="Ej. a-ZAY53JPR" spellcheck="false">
+      <button class="btn nlgo" id="nlgo">Entrar</button>
+    </div>
+    <div class="nlerr" id="nlerr"></div>
+    <div class="nltext" style="font-size:11px;margin-top:10px">Si no tienes clave, solicítala en la administración del colegio.</div>
   </div>
 </div>
 <div class="rolepick oculto" id="rolepick">
@@ -282,8 +299,8 @@
           <input class="txt" id="lastname" autocomplete="off" placeholder="Ej. Rodríguez">
         </div>
         <div class="row">
-          <label class="fld" for="pickerpin">Tu PIN de recogida</label>
-          <input class="txt" id="pickerpin" inputmode="numeric" maxlength="4" placeholder="4 dígitos" autocomplete="off">
+          <label class="fld" for="pickerpin">Tu PIN o código de autorización</label>
+          <input class="txt" id="pickerpin" maxlength="8" placeholder="PIN (4 dígitos) o código (6 letras)" autocomplete="off">
         </div>
         <div class="privacy">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d8b83" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -306,6 +323,14 @@
           <div class="rname" id="rname"></div>
           <div class="rpicker" id="rpicker"></div>
           <button class="btn" id="notify" style="margin-top:10px">Avisar que voy en camino</button>
+          <div class="authbox" id="authbox">
+            <button class="authlink" id="authmk">¿Hoy lo recoge otra persona? Crear autorización</button>
+            <div id="authform" style="display:none">
+              <input class="txt" id="authname" placeholder="Nombre de quien recoge (opcional)" autocomplete="off" style="margin:6px 0">
+              <button class="btn sec" id="authgo">Generar código de un solo uso</button>
+              <div class="authout" id="authout"></div>
+            </div>
+          </div>
         </div>
         <div class="msg" id="msg"></div>
 
@@ -406,7 +431,7 @@ function norm(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300
 function findCred(last,pin){ var nl=norm(last); return CREDENTIALS.find(function(c){return norm(c.last)===nl && c.pin===pin;}); }
 
 // records: {id, name, aula, picker, state:'avisado'|'camino'|'entregado', tstr}
-var records=[], seq=0, simulatedPeak=false, verified=null, carrilSel=null, posSel=null, colorSel=null, tandaId=null;
+var records=[], auths=[], seq=0, simulatedPeak=false, verified=null, carrilSel=null, posSel=null, colorSel=null, tandaId=null;
 var POSTXT={"1":"posición 1 (adelante)","2":"posición 2","3":"posición 3","4":"posición 4 (atrás)"};
 var POSCORTO={"1":"1","2":"2","3":"3","4":"4"};
 var COLORES=[
@@ -454,13 +479,27 @@ $("reveal").addEventListener("click",function(){
   var last=$("lastname").value,pin=$("pickerpin").value.trim(),msg=$("msg");msg.className="msg show";
   $("revealbox").style.display="none";verified=null;
   if(!norm(last)){msg.classList.add("warn");msg.textContent="Escribe el apellido del estudiante.";return;}
-  if(pin.length<4){msg.classList.add("warn");msg.textContent="Escribe tu PIN de 4 dígitos.";return;}
-  var cred=findCred(last,pin);
+  if(pin.length<4){msg.classList.add("warn");msg.textContent="Escribe tu PIN de 4 dígitos o tu código de autorización.";return;}
+  var cred=null;
+  if(/^[0-9]{4}$/.test(pin)){
+    cred=findCred(last,pin);
+    if(cred){ cred.lastKey=norm(last); cred.isAuth=false; }
+  } else {
+    // código de autorización: un solo uso, válido solo el día en que se creó
+    var code=pin.replace(/\s+/g,"").toUpperCase();
+    var au=(auths||[]).find(function(a){ return a.code===code && a.lastKey===norm(last) && !a.used && a.day===$("daypick").value; });
+    if(au){ cred={picker:(au.nombre? au.nombre+" (autorizado)":"Persona autorizada"),
+                  students:au.students, isAuth:true, authCode:au.code, lastKey:au.lastKey}; }
+  }
   if(!cred){msg.className="msg show err";msg.innerHTML="No encontramos una coincidencia con ese apellido y PIN. Verifica los datos.";return;}
   verified=cred;msg.className="msg";
   $("revealbox").style.display="block";
   $("rname").innerHTML=cred.students.map(function(s){return s.name+' <span class="sub">· '+s.aula+'</span>';}).join("<br>");
   $("rpicker").textContent="Recoge: "+cred.picker;
+  // formulario de autorización: solo para la familia con PIN, y siempre restaurado
+  $("authbox").style.display = cred.isAuth? "none":"block";
+  $("authmk").style.display=""; $("authform").style.display="none";
+  $("authout").innerHTML=""; $("authname").value="";
 });
 ["lastname","pickerpin"].forEach(function(id){$(id).addEventListener("input",function(){$("revealbox").style.display="none";verified=null;$("msg").className="msg";});});
 
@@ -471,6 +510,7 @@ $("notify").addEventListener("click",function(){
   if(!st.isOpen){msg.classList.add("err");msg.innerHTML="⛔ Todavía no abre la ventana de avisos de "+DAYS[pickedDay()]+". Puedes avisar desde las <b>"+fmt(st.abre)+"</b> ("+AVISO_ANTES+" min antes de la salida de las "+fmt(st.open)+").";return;}
   tandaId="t"+Date.now()+"_"+Math.floor(Math.random()*9999);
   verified.students.forEach(function(s){seq="r"+Date.now()+"_"+Math.floor(Math.random()*9999);records.push({id:seq,name:s.name,aula:s.aula,picker:verified.picker,carril:null,pos:null,color:null,state:"avisado",tstr:fmt(st.d),time:+st.d,mine:true,tanda:tandaId});});
+  if(verified.isAuth){ var auU=auths.find(function(a){return a.code===verified.authCode;}); if(auU) auU.used=true; }   // un solo uso
   saveState();
   var names=verified.students.map(function(s){return s.name;}).join(" y ");
   msg.className="msg show ok";msg.innerHTML="✓ Listo, <b>"+verified.picker+"</b>. Se avisó al aula de <b>"+names+"</b>.";
@@ -534,6 +574,15 @@ function renderPuerta(){
     return (r.state==="avisado"||r.state==="camino") && r.carril && r.pos;
   });
   renderMapa(enCorredor);
+  // alerta de retraso: niños en camino con 10+ minutos de espera
+  var tarde=incoming.filter(function(r){ return esperaMin(r)>=10; });
+  var av=$("latealert");
+  if(!av){ av=document.createElement("div"); av.id="latealert"; av.className="latealert";
+    ul.parentNode.insertBefore(av, ul); }
+  if(tarde.length){ av.style.display="block";
+    av.innerHTML="⚠ <b>"+tarde.length+"</b> esperando más de 10 minutos ("+
+      tarde.map(function(r){return r.name.split(" ")[0];}).join(", ")+") — avisar a coordinación.";
+  } else av.style.display="none";
 
   // hermanos: mismo acompañante = mismo vehículo
   var porPicker={};
@@ -738,6 +787,19 @@ document.querySelectorAll(".lane").forEach(function(bt){
     infoUbicacion();
   });
 });
+var AUTH_AL="ABCDEFGHJKMNPQRSTUVWXYZ23456789".replace("L","");
+function authCodeGen(){ var c=""; for(var i=0;i<6;i++) c+=AUTH_AL[Math.floor(Math.random()*AUTH_AL.length)]; return c; }
+$("authmk").addEventListener("click",function(){ $("authform").style.display="block"; this.style.display="none"; });
+$("authgo").addEventListener("click",function(){
+  if(!verified || verified.isAuth){ $("authout").textContent="Solo la familia (con su PIN) puede crear autorizaciones."; return; }
+  var code=authCodeGen();
+  auths.push({code:code, lastKey:verified.lastKey, nombre:$("authname").value.trim(),
+              students:verified.students, day:$("daypick").value, used:false, creada:fmt(now())});
+  saveState();
+  $("authout").innerHTML='Código para quien recoge hoy:<br><span class="authcode">'+code+
+    '</span><br>Se usa con el apellido <b>'+$("lastname").value.trim()+
+    '</b>. Vale <b>solo hoy</b> y <b>una sola vez</b>.';
+});
 $("daypick").addEventListener("change",function(){tick();saveState();});
 tick();renderAll();
 
@@ -765,8 +827,9 @@ function setRole(r){
   }
 }
 // ===== ENLACES ÚNICOS DE ACCESO =====
-var TOKENDE={padre:"p-N5F3DVC6", aula:"a-DKJWMTCL", puerta:"g-S9S5LD74", todo:"demo-R4SS22OI"};
-var ENLACES={}; Object.keys(TOKENDE).forEach(function(k){ ENLACES[TOKENDE[k]]=k; });
+var TOKENDE={padre:"p-VH6Q9X9U", aula:"a-ZAY53JPR", puerta:"g-ZW8NVEHM", todo:"demo-GBCWZABZ"};
+var ENLACES={}; Object.keys(TOKENDE).forEach(function(k){ ENLACES[TOKENDE[k].toUpperCase()]=k; });
+function rolDeClave(h){ if(!h) return null; return ENLACES[h.replace(/\s+/g,"").toUpperCase()] || null; }
 document.querySelectorAll(".rpcard").forEach(function(bt){
   bt.addEventListener("click",function(){ setRole(bt.getAttribute("data-role")); });
 });
@@ -776,8 +839,18 @@ document.getElementById("rpreset").addEventListener("click",function(){
   location.reload();
 });
 (function(){ var h=(location.hash||"").replace("#","");
-  if(ENLACES[h]) setRole(ENLACES[h]);
-  // sin enlace válido: se queda la pantalla de acceso restringido
+  var r=rolDeClave(h); if(r) setRole(r);
+})();
+(function(){
+  var go=document.getElementById("nlgo"), inp=document.getElementById("nlkey");
+  if(!go) return;
+  function intenta(){
+    var r=rolDeClave(inp.value);
+    if(r){ document.getElementById("nlerr").textContent=""; setRole(r); }
+    else document.getElementById("nlerr").textContent="Clave no válida. Revisa mayúsculas parecidas (la clave nunca usa O, cero, I ni uno).";
+  }
+  go.addEventListener("click",intenta);
+  inp.addEventListener("keydown",function(e){ if(e.key==="Enter") intenta(); });
 })();
 
 // ---- estado compartido entre pestañas del mismo navegador (localStorage + sondeo) ----
@@ -786,7 +859,7 @@ try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }catch(e){
 function saveState(){
   if(!puedeSync) return;
   lastV=Date.now();
-  try{ localStorage.setItem(SKEY, JSON.stringify({v:lastV, records:records,
+  try{ localStorage.setItem(SKEY, JSON.stringify({v:lastV, records:records, auths:auths,
     simPeak:simulatedPeak, day:document.getElementById("daypick").value})); }catch(e){}
 }
 function pollState(){
@@ -796,7 +869,7 @@ function pollState(){
   var st; try{ st=JSON.parse(raw); }catch(e){ return; }
   if(!st || !st.v || st.v<=lastV) return;
   lastV=st.v;
-  records=st.records||[];
+  records=st.records||[]; auths=st.auths||[];
   if(typeof st.simPeak==="boolean") simulatedPeak=st.simPeak;
   var dp=document.getElementById("daypick");
   if(st.day && dp.value!==st.day){ dp.value=st.day; }
