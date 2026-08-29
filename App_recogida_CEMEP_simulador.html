@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CEMEP · Recogida · Simulador de flujo</title>
+<style>
+  :root{
+    --ink:#1c2b24; --ink2:#4a5b52; --ink3:#7d8b83;
+    --paper:#f4f2ea; --card:#fffdf7; --line:#dfe0d3;
+    --brand:#1f5c3d; --brand2:#2d7a52; --brand-soft:#e4efe6;
+    --gold:#c98a2b; --gold-soft:#f6ecd8;
+    --alert:#a8352a; --alert-soft:#f7e6e3;
+    --blue:#245c86; --blue-soft:#e3eef6;
+    --radius:14px;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;
+       -webkit-font-smoothing:antialiased;padding:18px;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:1280px}
+  header.top{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+  .logo{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--brand)}
+  .logo span{color:var(--gold)}
+  .tag{font-size:12px;color:var(--ink3)}
+  .clockbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin:10px 0 16px}
+  .clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px}
+  .win{font-size:12px;color:var(--ink2)} .win b{color:var(--brand)} .win.closed b{color:var(--alert)}
+  .set{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3)}
+  .set select{padding:4px 6px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:12px;background:#fff}
+  .flow{font-size:11px;color:var(--ink3);text-align:center;margin:-4px 0 14px}
+  .flow b{color:var(--ink2)}
+  .flow .arr{color:var(--gold);margin:0 6px;font-weight:700}
+  .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  /* pantallas individuales por rol */
+  body[data-role="padre"] .cols{grid-template-columns:1fr;max-width:520px;margin:0 auto}
+  body[data-role="aula"]  .cols{grid-template-columns:1fr;max-width:560px;margin:0 auto}
+  body[data-role="puerta"] .cols{grid-template-columns:1fr;max-width:640px;margin:0 auto}
+  body[data-role="padre"] [data-panel="aula"], body[data-role="padre"] [data-panel="puerta"]{display:none}
+  body[data-role="aula"]  [data-panel="padre"], body[data-role="aula"] [data-panel="puerta"]{display:none}
+  body[data-role="puerta"] [data-panel="padre"], body[data-role="puerta"] [data-panel="aula"]{display:none}
+  body[data-role="padre"] .flow, body[data-role="aula"] .flow, body[data-role="puerta"] .flow{display:none}
+  .rolechip{font-size:10.5px;color:var(--ink3);background:#efede6;border:1px solid var(--line);
+    border-radius:14px;padding:3px 10px;cursor:pointer;font-family:inherit}
+  .rolechip:hover{border-color:var(--brand);color:var(--brand)}
+  /* overlay selector */
+  .nolink{position:fixed;inset:0;background:var(--paper);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center}
+  .nolink.oculto{display:none}
+  .nlform{display:flex;gap:8px;max-width:360px;margin:14px auto 0}
+  .nlform .nlkey{flex:1 1 auto;min-width:0;text-transform:none}
+  .nlform .nlgo{flex:0 0 auto;width:auto;padding:10px 20px;margin:0;white-space:nowrap}
+  .nlerr{color:var(--alert);font-size:11.5px;margin-top:8px;min-height:15px;font-weight:600}
+  .nltitle{font-size:18px;font-weight:800;color:var(--alert);margin:10px 0 8px}
+  .nltext{font-size:13px;color:var(--ink2);line-height:1.6;max-width:430px;margin:0 auto}
+  .rolepick{position:fixed;inset:0;background:var(--paper);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px}
+  .rolepick.oculto{display:none}
+  .rpbox{max-width:680px;width:100%;text-align:center}
+  .rplogo{font-size:24px;font-weight:800;color:var(--brand)} .rplogo span{color:var(--gold)}
+  .rpsub{font-size:14px;color:var(--ink2);margin:6px 0 18px}
+  .rpcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:700px){.rpcards{grid-template-columns:1fr}}
+  .rpcard{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px 12px;cursor:pointer;
+    font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.15s}
+  .rpcard:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:0 6px 16px rgba(31,60,45,.08)}
+  .rpcard b{font-size:14px;color:var(--ink)} .rpcard small{font-size:11px;color:var(--ink3);line-height:1.35}
+  .rprole{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 10px;border-radius:12px}
+  .rprole.padre{background:var(--gold-soft);color:#8a5e12}
+  .rprole.aula{background:var(--blue-soft);color:var(--blue)}
+  .rprole.puerta{background:var(--brand-soft);color:var(--brand)}
+  .rpfull{margin-top:16px;background:none;border:none;color:var(--blue);font-size:12.5px;cursor:pointer;
+    font-family:inherit;text-decoration:underline}
+  .rpreset{margin-top:10px;background:none;border:1px solid var(--line);border-radius:9px;
+    padding:6px 12px;color:var(--alert);font-size:11px;cursor:pointer;font-family:inherit}
+  .rpreset:hover{border-color:var(--alert)}
+  .rpnote{margin-top:14px;font-size:10.5px;color:var(--ink3);line-height:1.45;max-width:520px;margin-left:auto;margin-right:auto}
+  @media(max-width:980px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+  .phead{padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .phead .role{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;padding:2px 7px;border-radius:20px}
+  .role.padre{background:var(--gold-soft);color:#8a5e12}
+  .role.aula{background:var(--blue-soft);color:var(--blue)}
+  .role.puerta{background:var(--brand-soft);color:var(--brand)}
+  .phead h2{margin:0;font-size:14px;font-weight:700}
+  .phead .count{margin-left:auto;font-size:11px;color:var(--ink3)} .phead .count b{color:var(--brand);font-size:14px}
+  .pbody{padding:14px;flex:1}
+  label.fld{display:block;font-size:12px;color:var(--ink2);font-weight:600;margin:0 0 4px}
+  input.txt,select.sel{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    font-family:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  input.txt:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+  .row{margin-bottom:10px}
+  .btn{width:100%;padding:11px;border:none;border-radius:9px;background:var(--brand);color:#fff;
+    font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+  .btn:hover{background:var(--brand2)}
+  .btn.blue{background:var(--blue)} .btn.blue:hover{background:#1d4c6f}
+  .privacy{font-size:11px;color:var(--ink3);margin:2px 0 10px;display:flex;gap:6px;align-items:flex-start}
+  .privacy svg{flex:none;margin-top:1px}
+  .msg{margin-top:10px;padding:10px 12px;border-radius:9px;font-size:12.5px;display:none}
+  .msg.show{display:block}
+  .msg.ok{background:var(--brand-soft);color:var(--brand);border:1px solid #bcd8c4}
+  .msg.warn{background:var(--gold-soft);color:#8a5e12;border:1px solid #ecd6a6}
+  .msg.err{background:var(--alert-soft);color:var(--alert);border:1px solid #ecc4bf}
+  .revealbox{margin-top:4px;padding:12px;border:1px solid #bcd8c4;background:var(--brand-soft);border-radius:11px;animation:pop .25s ease}
+  .rlabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--brand);font-weight:700}
+  .rname{font-size:16px;font-weight:800;margin-top:2px} .rname .sub{font-weight:400;color:var(--ink3);font-size:13px}
+  .rpicker{font-size:12px;color:var(--ink2);margin-top:2px}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .list{list-style:none;margin:0;padding:0}
+  .item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);animation:pop .22s ease}
+  .item:last-child{border-bottom:none}
+  .badge{width:24px;height:24px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+  .badge.aula{background:var(--blue)} .badge.puerta{background:var(--brand)}
+  .imain{flex:1;min-width:0}
+  .iname{font-weight:700;font-size:13.5px}
+  .isub{font-size:11.5px;color:var(--ink3)}
+  .st{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:20px;white-space:nowrap}
+  .st.avisado{background:var(--gold-soft);color:#8a5e12}
+  .st.camino{background:var(--blue-soft);color:var(--blue)}
+  .act{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--ink2);white-space:nowrap}
+  .act.blue{border-color:var(--blue);color:var(--blue)} .act.blue:hover{background:var(--blue-soft)}
+  .act.green{border-color:var(--brand);color:var(--brand)} .act.green:hover{background:var(--brand-soft)}
+  .empty{padding:22px 14px;text-align:center;color:var(--ink3);font-size:12.5px}
+  .aulapick{margin-bottom:10px}
+  .lanepick{margin-top:11px;padding-top:10px;border-top:1px solid #bcd8c4}
+  .lanelab{font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:7px}
+  .lanes{display:flex;gap:8px}
+  .lane{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;
+    border:1.5px solid #bcd8c4;background:#fff;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s}
+  .lane:hover{border-color:var(--brand)}
+  .lane.sel{background:var(--brand);border-color:var(--brand)}
+  .lnum{width:24px;height:24px;border-radius:50%;background:#eaf2ec;color:var(--brand);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .lane.sel .lnum{background:#fff;color:var(--brand)}
+  .ltxt{font-size:9.5px;color:var(--ink3);line-height:1.2;text-align:center}
+  .lane.sel .ltxt{color:#e4efe6}
+  .pos{flex:1;padding:8px 4px;border:1.5px solid #bcd8c4;background:#fff;border-radius:10px;
+    cursor:pointer;font-family:inherit;transition:.15s;display:flex;justify-content:center}
+  .pos:hover{border-color:var(--brand)}
+  .pos.sel{background:var(--brand);border-color:var(--brand)}
+  .ptxt{font-size:11px;font-weight:700;color:var(--ink2)}
+  .pos.sel .ptxt{color:#fff}
+  .posbadge{font-size:8.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.03em}
+  .corrmap{margin:0 0 12px;padding:10px;background:#f7f6f0;border:1px solid var(--line);border-radius:11px}
+  .cmtitle{font-size:9.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+  .cmgrid{display:grid;grid-template-columns:26px 1fr 1fr 1fr 22px;gap:4px;align-items:stretch}
+  .cmcell{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .cmhdr{font-size:11px;font-weight:800;color:var(--blue);line-height:1.15;text-align:center}
+  .cmhdr span{font-size:7px;font-weight:400;color:var(--ink3);line-height:1.1}
+  .cmposlbl{font-size:11px;font-weight:800;color:var(--ink3);background:#eeece4;border-radius:5px}
+  .cmcorner{font-size:7.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.02em;text-align:center;line-height:1.1}
+  .cmv{display:flex;gap:6px;align-items:stretch}
+  .cmbldgv{background:#e8e6df;border:1px solid #cfccc0;border-radius:6px;
+    display:flex;align-items:center;justify-content:center}
+  .cmbldgv span{writing-mode:vertical-rl;font-size:7.5px;font-weight:700;
+    color:#5f5e5a;letter-spacing:.05em;white-space:nowrap}
+  .cmvbody{flex:1;min-width:0}
+  .cmvhead{display:flex;gap:4px;align-items:flex-end;margin-bottom:4px}
+  .cmvrow{display:flex;gap:4px;margin-bottom:4px}
+  .cmvfoot{display:flex;gap:4px}
+  .cmvpos,.cmvdir{width:46px;flex:none;font-size:7.5px;font-weight:700;color:var(--ink3);
+    text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center}
+  .cmvdir{color:var(--blue)}
+  .cmvlane{flex:1;text-align:center;font-size:11px;font-weight:800;color:var(--blue);line-height:1.1}
+  .cmgrid .cmslot{height:26px;border-radius:5px}
+  .cmslot.pend{opacity:.72;border-style:dashed !important}   /* apaisado: el largo del vehículo va en el carril */
+  .cmbldg{background:#e8e6df;border:1px solid #cfccc0;border-radius:6px;padding:4px 8px;
+    font-size:9px;font-weight:700;color:#5f5e5a;text-align:center;letter-spacing:.03em;margin-bottom:6px}
+  .cmhead{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+  .cmdirs{flex:1;display:flex;justify-content:space-between;align-items:center;
+    font-size:8px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em}
+  .cmdirmid{font-weight:400;text-transform:none;letter-spacing:0;color:#a9aca6;font-size:7.5px}
+  .cmldesc{display:block;font-size:6.5px;font-weight:400;color:var(--ink3);text-transform:none;
+    letter-spacing:0;line-height:1.1;margin-top:1px}
+  .cmrow{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+  .cmlane{width:42px;font-size:10px;font-weight:800;color:var(--blue);text-align:center;flex:none}
+  .cmslots{display:flex;gap:4px;flex:1}
+  .cmslot{flex:1;height:30px;border-radius:6px;border:1px dashed #cfd0c4;background:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+  .cmslot.on{border:1px solid var(--brand);background:var(--brand-soft)}
+  .cmname{font-size:8px;font-weight:700;color:var(--brand);line-height:1;text-align:center;padding:0 2px}
+  .cmsub{font-size:6.5px;color:var(--ink3);line-height:1.1}
+  .cmfoot{font-size:9px;color:var(--ink3);margin-top:5px;text-align:center}
+  .latealert{display:none;background:#fdf3f2;border:1.5px solid var(--alert);color:#7a2620;
+    border-radius:9px;padding:8px 11px;font-size:12px;margin-bottom:10px}
+  .lanegroup{font-size:10px;font-weight:800;color:var(--blue);background:var(--blue-soft);
+    padding:3px 8px;border-radius:5px;margin:8px 0 2px;display:inline-block}
+  .sibs{font-size:9.5px;font-weight:700;color:#8a5e12;background:var(--gold-soft);
+    padding:2px 6px;border-radius:10px;margin-left:6px;white-space:nowrap}
+  .wait{font-size:10px;font-weight:700;color:var(--ink3);white-space:nowrap}
+  .wait.alto{color:var(--alert)}
+  .colors{display:flex;flex-wrap:wrap;gap:6px}
+  .col{width:30px;height:30px;border-radius:8px;border:2px solid #d8d8d0;cursor:pointer;
+    position:relative;transition:.15s;padding:0}
+  .col:hover{transform:scale(1.08)}
+  .col.sel{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
+  .col.sel::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;font-size:14px;font-weight:900}
+  .col.sel.claro::after{color:#1c2b24} .col.sel.oscuro::after{color:#fff}
+  .lanehint{font-size:10.5px;color:var(--ink3);margin-top:6px;line-height:1.35}
+  .lanebadge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+    border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:800;flex:none}
+  .geobox{margin:8px 0 12px;padding:9px 11px;border:1px dashed var(--line);border-radius:10px;background:#fbfaf5}
+  .geolab{font-size:11.5px;color:var(--ink2);display:flex;gap:6px;align-items:center;cursor:pointer}
+  .georange{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:var(--ink3)}
+  .georange input{flex:1}
+  .geostat{font-size:11px;color:var(--ink2);margin-top:5px;font-weight:600}
+  .geostat.dispara{color:var(--brand)}
+  .authbox{margin-top:10px;padding-top:9px;border-top:1px dashed #bcd8c4}
+  .authlink{background:none;border:none;color:var(--blue);font-size:11.5px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
+  .btn.sec{background:var(--blue);margin-top:0}
+  .authout{margin-top:8px;font-size:12px;color:var(--ink2);line-height:1.5}
+  .authcode{font-size:20px;font-weight:800;letter-spacing:.12em;color:var(--brand);background:var(--brand-soft);
+    border-radius:8px;padding:6px 12px;display:inline-block;margin:4px 0}
+  .trackbox{margin-top:12px;padding:11px;border:1px solid #a9cdeb;background:#eaf2fa;border-radius:11px}
+  .trow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #d4e4f2}
+  .trow:last-child{border-bottom:none}
+  .tname{font-weight:700;font-size:13px;flex:1}
+  .tstep{display:flex;gap:4px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:#cfd8dd}
+  .dot.on{background:var(--brand)}
+  .tlabel{font-size:11px;font-weight:700;color:var(--brand)}
+  .tlabel.wait{color:#8a5e12}
+  .hist{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .hrow{display:flex;gap:8px;font-size:11.5px;color:var(--ink2);padding:3px 0}
+  .hrow .ht{color:var(--ink3);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .foot{margin-top:16px;font-size:11px;color:var(--ink3);text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="nolink" id="nolink">
+  <div class="rpbox">
+    <div class="rplogo">CEMEP<span>·</span>Recogida</div>
+    <div class="nltitle">Acceso restringido</div>
+    <div class="nltext">Cada pantalla de este sistema se abre con un <b>enlace de acceso propio</b>,
+    entregado por el colegio. Abre el enlace que te asignaron o escribe tu clave aquí:</div>
+    <div class="nlform">
+      <input class="txt nlkey" id="nlkey" autocomplete="off" placeholder="Ej. a-ZAY53JPR" spellcheck="false">
+      <button class="btn nlgo" id="nlgo">Entrar</button>
+    </div>
+    <div class="nlerr" id="nlerr"></div>
+    <div class="nltext" style="font-size:11px;margin-top:10px">Si no tienes clave, solicítala en la administración del colegio.</div>
+  </div>
+</div>
+<div class="rolepick oculto" id="rolepick">
+  <div class="rpbox">
+    <div class="rplogo">CEMEP<span>·</span>Recogida</div>
+    <div class="rpsub">¿Qué pantalla vas a usar en este dispositivo?</div>
+    <div class="rpcards">
+      <button class="rpcard" data-role="padre">
+        <span class="rprole padre">Padre</span>
+        <b>Avisar que llegué</b>
+        <small>Para el teléfono del padre o acompañante</small>
+      </button>
+      <button class="rpcard" data-role="aula">
+        <span class="rprole aula">Aula</span>
+        <b>Avisos del maestro</b>
+        <small>Para la tablet o computadora del aula</small>
+      </button>
+      <button class="rpcard" data-role="puerta">
+        <span class="rprole puerta">Puerta</span>
+        <b>Entrega en la zona de carga</b>
+        <small>Para la pantalla del personal en la puerta</small>
+      </button>
+    </div>
+    <button class="rpfull" id="rpfull">Ver el simulador completo (las 3 vistas juntas)</button>
+    <button class="rpreset" id="rpreset">Reiniciar la demostración (borra los avisos de todas las pantallas)</button>
+    <div class="rpnote">Las pantallas abiertas desde este mismo archivo, en pestañas del mismo navegador, se sincronizan entre sí. La sincronización entre teléfonos y tablets distintos requiere la versión con servidor.</div>
+  </div>
+</div>
+<div class="wrap" id="appwrap" style="display:none">
+  <header class="top">
+    <div class="logo">CEMEP<span>·</span>Recogida</div>
+    <div class="tag">Simulador del flujo completo · datos de ejemplo</div>
+  </header>
+
+  <div class="clockbar">
+    <div class="clock" id="clock">--:--</div>
+    <div class="win" id="winlbl">Salida de <b id="daylbl">hoy</b>: <b id="winrange">2:00 PM</b></div>
+    <div class="set">
+      <select id="daypick" title="Simular día">
+        <option value="auto" id="autoopt">hoy (automático)</option>
+        <option value="1">lunes</option><option value="2">martes</option>
+        <option value="3">miércoles</option><option value="4">jueves</option>
+        <option value="5">viernes</option>
+      </select>
+      <button class="act" id="simnow">simular hora pico</button>
+    </div>
+  </div>
+
+  <p class="flow">Flujo: <b>padre avisa</b> <span class="arr">→</span> le llega al <b>aula del niño</b> <span class="arr">→</span> el maestro confirma que <b>salió</b> <span class="arr">→</span> aparece en la <b>puerta</b> para entrega</p>
+
+  <div class="cols">
+    <!-- ===== PADRE ===== -->
+    <section class="panel" data-panel="padre">
+      <div class="phead"><span class="role padre">Padre</span><h2>Avisar que llegué</h2></div>
+      <div class="pbody">
+        <div class="row">
+          <label class="fld" for="lastname">Apellido del estudiante</label>
+          <input class="txt" id="lastname" autocomplete="off" placeholder="Ej. Rodríguez">
+        </div>
+        <div class="row">
+          <label class="fld" for="pickerpin">Tu PIN o código de autorización</label>
+          <input class="txt" id="pickerpin" maxlength="8" placeholder="PIN (4 dígitos) o código (6 letras)" autocomplete="off">
+        </div>
+        <div class="privacy">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d8b83" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <span>El nombre no se muestra hasta que el apellido y el PIN coincidan.</span>
+        </div>
+        <div class="geobox">
+          <label class="geolab"><input type="checkbox" id="autoaviso"> Avisar automáticamente al acercarme</label>
+          <div id="georow" style="display:none">
+            <div class="georange">
+              <span>lejos</span>
+              <input type="range" id="dist" min="0" max="50" value="0">
+              <span>colegio</span>
+            </div>
+            <div class="geostat" id="geostat">Distancia al colegio: 5.0 km · aviso automático a 2 km</div>
+          </div>
+        </div>
+        <button class="btn" id="reveal">Verificar</button>
+        <div id="revealbox" class="revealbox" style="display:none">
+          <div class="rlabel">Recoger a</div>
+          <div class="rname" id="rname"></div>
+          <div class="rpicker" id="rpicker"></div>
+          <button class="btn" id="notify" style="margin-top:10px">Avisar que voy en camino</button>
+          <div class="authbox" id="authbox">
+            <button class="authlink" id="authmk">¿Hoy lo recoge otra persona? Crear autorización</button>
+            <div id="authform" style="display:none">
+              <input class="txt" id="authname" placeholder="Nombre de quien recoge (opcional)" autocomplete="off" style="margin:6px 0">
+              <button class="btn sec" id="authgo">Generar código de un solo uso</button>
+              <div class="authout" id="authout"></div>
+            </div>
+          </div>
+        </div>
+        <div class="msg" id="msg"></div>
+
+        <!-- seguimiento en vivo -->
+        <div id="track" class="trackbox" style="display:none">
+          <div class="rlabel">Seguimiento</div>
+          <div id="tracklist"></div>
+          <div class="lanepick" id="lanepick">
+            <div class="lanelab">Ya estoy en la zona de carga — ¿en qué carril?</div>
+            <div class="lanes">
+              <button class="lane" data-lane="1"><span class="lnum">1</span><span class="ltxt">junto al edificio</span></button>
+              <button class="lane" data-lane="2"><span class="lnum">2</span><span class="ltxt">del medio</span></button>
+              <button class="lane" data-lane="3"><span class="lnum">3</span><span class="ltxt">exterior</span></button>
+            </div>
+            <div class="lanelab" style="margin-top:10px">¿En qué posición del carril? <span style="font-weight:400;color:var(--ink3)">(1 = la más adelantada)</span></div>
+            <div class="lanes">
+              <button class="pos" data-pos="1"><span class="ptxt">1</span></button>
+              <button class="pos" data-pos="2"><span class="ptxt">2</span></button>
+              <button class="pos" data-pos="3"><span class="ptxt">3</span></button>
+              <button class="pos" data-pos="4"><span class="ptxt">4</span></button>
+            </div>
+            <div class="lanelab" style="margin-top:10px">Color de tu vehículo</div>
+            <div class="colors" id="colors"></div>
+            <div class="lanehint" id="lanehint">Selecciónalo al entrar al corredor: el personal de la puerta lo verá al instante.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== AULA ===== -->
+    <section class="panel" data-panel="aula">
+      <div class="phead"><span class="role aula">Aula</span><h2>Avisos del maestro</h2>
+        <span class="count">pendientes <b id="aulacount">0</b></span></div>
+      <div class="pbody">
+        <div class="aulapick">
+          <label class="fld" for="aulasel">Estás viendo el aula</label>
+          <select class="sel" id="aulasel"></select>
+        </div>
+        <ul class="list" id="aulalist"></ul>
+        <div class="empty" id="aulaempty">Sin avisos para esta aula todavía.</div>
+      </div>
+    </section>
+
+    <!-- ===== PUERTA ===== -->
+    <section class="panel" data-panel="puerta">
+      <div class="phead"><span class="role puerta">Puerta</span><h2>Entrega en la zona de carga</h2>
+        <span class="count">en camino <b id="puertacount">0</b></span></div>
+      <div class="pbody">
+        <div class="corrmap" id="corrmap"></div>
+        <ul class="list" id="puertalist"></ul>
+        <div class="empty" id="puertaempty">Nadie va en camino todavía. Cuando un maestro confirma la salida, el niño aparece aquí.</div>
+        <div class="hist">
+          <div class="rlabel" style="margin-bottom:6px">Retiros de hoy · <span id="histcount">0</span></div>
+          <div id="histlist"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">
+    Prototipo de demostración con datos de ejemplo. Las pantallas abiertas desde este archivo en pestañas del mismo navegador se sincronizan entre sí; la sincronización entre dispositivos distintos requiere la versión con servidor.<br>
+    Cada aviso pasa por tres estados: <b>avisado</b> (esperando en el aula) → <b>en camino</b> (el maestro confirmó salida) → <b>entregado</b> (la puerta lo cerró). El aula solo ve a sus propios estudiantes.
+  </p>
+</div>
+
+<script>
+// ---------- datos de ejemplo ----------
+var CREDENTIALS = [
+  {last:"Rodríguez", pin:"1234", picker:"Ana (mamá)",    students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
+  {last:"Rodríguez", pin:"5678", picker:"Luis (papá)",   students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
+  {last:"Rodríguez", pin:"4321", picker:"Rosa (abuela)", students:[{name:"Sofía Rodríguez", aula:"3° A"}]},
+  {last:"Jiménez", pin:"1111", picker:"Carlos (papá)", students:[{name:"Mateo Jiménez", aula:"5° B"}]},
+  {last:"Jiménez", pin:"2222", picker:"Marta (tía)",   students:[{name:"Mateo Jiménez", aula:"5° B"}]},
+  {last:"Pérez", pin:"3333", picker:"Elena (mamá)",  students:[{name:"Valentina Pérez", aula:"1° A"}]},
+  {last:"Pérez", pin:"9999", picker:"Chofer autoriz.", students:[{name:"Valentina Pérez", aula:"1° A"}]},
+  {last:"Santana", pin:"7777", picker:"Paula (mamá)",  students:[{name:"Diego Santana", aula:"4° C"},{name:"Lucía Santana", aula:"2° A"}]},
+  {last:"Santana", pin:"8888", picker:"Jorge (papá)",  students:[{name:"Diego Santana", aula:"4° C"},{name:"Lucía Santana", aula:"2° A"}]},
+  {last:"Cruz", pin:"1010", picker:"Pedro (abuelo)", students:[{name:"Isabella Cruz", aula:"2° A"}]},
+  {last:"Cruz", pin:"2020", picker:"Carmen (mamá)", students:[{name:"Isabella Cruz", aula:"2° A"}]},
+  {last:"Reyes", pin:"1212", picker:"Yahaira (mamá)", students:[{name:"Sebastián Reyes", aula:"1° A"},{name:"Camila Reyes", aula:"3° A"}]},
+  {last:"Reyes", pin:"3434", picker:"Ramón (papá)",  students:[{name:"Sebastián Reyes", aula:"1° A"},{name:"Camila Reyes", aula:"3° A"}]},
+  {last:"Fernández", pin:"5656", picker:"Lucía (mamá)",  students:[{name:"Adrián Fernández", aula:"5° B"}]},
+  {last:"Fernández", pin:"6767", picker:"Abuela Nena",   students:[{name:"Adrián Fernández", aula:"5° B"}]},
+  {last:"Peña", pin:"7878", picker:"José (papá)",   students:[{name:"Emma Peña", aula:"4° C"}]},
+  {last:"Peña", pin:"8989", picker:"Chofer autoriz.", students:[{name:"Emma Peña", aula:"4° C"}]},
+  {last:"Martínez", pin:"1357", picker:"Rosaura (mamá)", students:[{name:"Gabriel Martínez", aula:"2° A"},{name:"Daniela Martínez", aula:"5° B"}]},
+  {last:"Martínez", pin:"2468", picker:"Miguel (papá)", students:[{name:"Gabriel Martínez", aula:"2° A"},{name:"Daniela Martínez", aula:"5° B"}]},
+  {last:"Guzmán", pin:"1470", picker:"Katherine (mamá)", students:[{name:"Noah Guzmán", aula:"1° A"}]},
+  {last:"Guzmán", pin:"2580", picker:"Tío Frank",     students:[{name:"Noah Guzmán", aula:"1° A"}]},
+  {last:"Batista", pin:"3690", picker:"Wanda (mamá)",  students:[{name:"Amelia Batista", aula:"3° A"}]},
+  {last:"Batista", pin:"1590", picker:"Héctor (papá)", students:[{name:"Amelia Batista", aula:"3° A"}]},
+  {last:"Núñez", pin:"7410", picker:"Yesenia (mamá)", students:[{name:"Liam Núñez", aula:"4° C"}]},
+  {last:"Núñez", pin:"8520", picker:"Abuelo Tavo",   students:[{name:"Liam Núñez", aula:"4° C"}]}
+];
+var AULAS = ["1° A", "2° A", "3° A", "4° C", "5° B"];
+
+function norm(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
+function findCred(last,pin){ var nl=norm(last); return CREDENTIALS.find(function(c){return norm(c.last)===nl && c.pin===pin;}); }
+
+// records: {id, name, aula, picker, state:'avisado'|'camino'|'entregado', tstr}
+var records=[], auths=[], seq=0, simulatedPeak=false, verified=null, carrilSel=null, posSel=null, colorSel=null, tandaId=null;
+var POSTXT={"1":"posición 1 (adelante)","2":"posición 2","3":"posición 3","4":"posición 4 (atrás)"};
+var POSCORTO={"1":"1","2":"2","3":"3","4":"4"};
+var COLORES=[
+ {id:"blanco", nom:"Blanco", hex:"#ffffff", claro:true},
+ {id:"gris",   nom:"Gris",   hex:"#9aa0a6", claro:false},
+ {id:"negro",  nom:"Negro",  hex:"#2b2f33", claro:false},
+ {id:"plata",  nom:"Plata",  hex:"#d5d8dc", claro:true},
+ {id:"rojo",   nom:"Rojo",   hex:"#c0392b", claro:false},
+ {id:"azul",   nom:"Azul",   hex:"#2465a8", claro:false},
+ {id:"verde",  nom:"Verde",  hex:"#2d7a52", claro:false},
+ {id:"beige",  nom:"Beige",  hex:"#d9c9a3", claro:true},
+ {id:"vino",   nom:"Vino",   hex:"#7b2d3b", claro:false},
+ {id:"amarillo",nom:"Amarillo",hex:"#e2b33c", claro:true}
+];
+function colorDe(id){ return COLORES.find(function(c){return c.id===id;}) || null; }
+var $=function(id){return document.getElementById(id);};
+var DAYS=["dom","lunes","martes","miércoles","jueves","viernes","sáb"];
+var AVISO_ANTES=20;   // los avisos se aceptan desde 20 min antes de la salida
+
+function pickedDay(){var v=$("daypick").value;return v==="auto"?new Date().getDay():+v;}
+function openHM(dow){if(dow===5)return{h:13,m:30};if(dow>=1&&dow<=4)return{h:14,m:0};return null;}
+function now(){return simulatedPeak?peakTime():new Date();}
+function peakTime(){var d=new Date(),o=openHM(pickedDay())||{h:14,m:0};d.setHours(o.h,o.m-10,0,0);return d;}   // 10 min antes: dentro de la ventana de avisos
+function fmt(d){var h=d.getHours(),m=d.getMinutes(),ap=h>=12?"PM":"AM",h12=h%12||12;return h12+":"+(m<10?"0":"")+m+" "+ap;}
+function tick(){
+  var d=now();$("clock").textContent=fmt(d);
+  $("autoopt").textContent="hoy · "+DAYS[new Date().getDay()]+" (automático)";
+  var dow=pickedDay();$("daylbl").textContent=DAYS[dow];var o=openHM(dow);
+  if(!o){$("winrange").textContent="no hay salida";$("winlbl").classList.add("closed");return{isOpen:false,d:d,noSchool:true};}
+  var open=new Date(d);open.setHours(o.h,o.m,0,0);
+  var abre=new Date(open); abre.setMinutes(abre.getMinutes()-AVISO_ANTES);   // ventana de avisos
+  $("winrange").innerHTML=fmt(open)+' <span style="font-weight:400;color:var(--ink3)">· avisos desde '+fmt(abre)+'</span>';
+  var isOpen=d>=abre;                       // se puede avisar desde 20 min antes
+  $("winlbl").classList.toggle("closed",!isOpen);
+  return{open:open,abre:abre,isOpen:isOpen,d:d};
+}
+setInterval(tick,1000);
+
+// poblar selector de aula
+(function(){var sel=$("aulasel");AULAS.forEach(function(a){var o=document.createElement("option");o.value=a;o.textContent=a;sel.appendChild(o);});
+  sel.addEventListener("change",renderAula);})();
+
+// ---------- PADRE: verificar ----------
+$("reveal").addEventListener("click",function(){
+  var last=$("lastname").value,pin=$("pickerpin").value.trim(),msg=$("msg");msg.className="msg show";
+  $("revealbox").style.display="none";verified=null;
+  if(!norm(last)){msg.classList.add("warn");msg.textContent="Escribe el apellido del estudiante.";return;}
+  if(pin.length<4){msg.classList.add("warn");msg.textContent="Escribe tu PIN de 4 dígitos o tu código de autorización.";return;}
+  var cred=null;
+  if(/^[0-9]{4}$/.test(pin)){
+    cred=findCred(last,pin);
+    if(cred){ cred.lastKey=norm(last); cred.isAuth=false; }
+  } else {
+    // código de autorización: un solo uso, válido solo el día en que se creó
+    var code=pin.replace(/\s+/g,"").toUpperCase();
+    var au=(auths||[]).find(function(a){ return a.code===code && a.lastKey===norm(last) && !a.used && a.day===$("daypick").value; });
+    if(au){ cred={picker:(au.nombre? au.nombre+" (autorizado)":"Persona autorizada"),
+                  students:au.students, isAuth:true, authCode:au.code, lastKey:au.lastKey}; }
+  }
+  if(!cred){msg.className="msg show err";msg.innerHTML="No encontramos una coincidencia con ese apellido y PIN. Verifica los datos.";return;}
+  verified=cred;msg.className="msg";
+  $("revealbox").style.display="block";
+  $("rname").innerHTML=cred.students.map(function(s){return s.name+' <span class="sub">· '+s.aula+'</span>';}).join("<br>");
+  $("rpicker").textContent="Recoge: "+cred.picker;
+  // formulario de autorización: solo para la familia con PIN, y siempre restaurado
+  $("authbox").style.display = cred.isAuth? "none":"block";
+  $("authmk").style.display=""; $("authform").style.display="none";
+  $("authout").innerHTML=""; $("authname").value="";
+});
+["lastname","pickerpin"].forEach(function(id){$(id).addEventListener("input",function(){$("revealbox").style.display="none";verified=null;$("msg").className="msg";});});
+
+// ---------- PADRE: avisar ----------
+$("notify").addEventListener("click",function(){
+  if(!verified)return;var st=tick(),msg=$("msg");msg.className="msg show";
+  if(st.noSchool){msg.classList.add("err");msg.innerHTML="⛔ Hoy no hay salida (fin de semana).";return;}
+  if(!st.isOpen){msg.classList.add("err");msg.innerHTML="⛔ Todavía no abre la ventana de avisos de "+DAYS[pickedDay()]+". Puedes avisar desde las <b>"+fmt(st.abre)+"</b> ("+AVISO_ANTES+" min antes de la salida de las "+fmt(st.open)+").";return;}
+  tandaId="t"+Date.now()+"_"+Math.floor(Math.random()*9999);
+  verified.students.forEach(function(s){seq="r"+Date.now()+"_"+Math.floor(Math.random()*9999);records.push({id:seq,name:s.name,aula:s.aula,picker:verified.picker,carril:null,pos:null,color:null,state:"avisado",tstr:fmt(st.d),time:+st.d,mine:true,tanda:tandaId});});
+  if(verified.isAuth){ var auU=auths.find(function(a){return a.code===verified.authCode;}); if(auU) auU.used=true; }   // un solo uso
+  saveState();
+  var names=verified.students.map(function(s){return s.name;}).join(" y ");
+  msg.className="msg show ok";msg.innerHTML="✓ Listo, <b>"+verified.picker+"</b>. Se avisó al aula de <b>"+names+"</b>.";
+  $("lastname").value="";$("pickerpin").value="";$("revealbox").style.display="none";verified=null;
+  carrilSel=null;posSel=null;colorSel=null;
+  document.querySelectorAll(".lane,.pos,.col").forEach(function(o){o.classList.remove("sel");});
+  $("lanehint").textContent="Selecciónalo al entrar al corredor: el personal de la puerta lo verá al instante.";
+
+  renderAll();
+});
+
+// ---------- AULA ----------
+function renderAula(){
+  var aula=$("aulasel").value,ul=$("aulalist");ul.innerHTML="";
+  var mine=records.filter(function(r){return r.aula===aula && r.state==="avisado";}).sort(function(a,b){return a.time-b.time;});
+  $("aulacount").textContent=mine.length;
+  $("aulaempty").style.display=mine.length?"none":"block";
+  mine.forEach(function(r){
+    var li=document.createElement("li");li.className="item";
+    li.innerHTML='<div class="badge aula">'+r.aula.replace(/[°\s]/g,"").slice(0,2)+'</div>'+
+      '<div class="imain"><div class="iname">'+r.name+'</div>'+
+      '<div class="isub">Recoge: '+r.picker+(r.carril? ' · carril <b>'+r.carril+'</b>'+(r.pos?' ('+POSTXT[r.pos]+')':''):'')+' · <span>avisó '+r.tstr+'</span></div></div>'+
+      '<span class="st avisado">avisado</span>'+
+      '<button class="act blue" data-id="'+r.id+'">salió →</button>';
+    ul.appendChild(li);
+  });
+  ul.querySelectorAll(".act").forEach(function(b){b.addEventListener("click",function(){
+    var r=records.find(function(x){return x.id==b.getAttribute("data-id");});if(r)r.state="camino";renderAll();saveState();
+  });});
+}
+
+// ---------- PUERTA ----------
+function avanzarCarril(lane){
+ // Los vehículos que quedan en el carril avanzan hacia la posición 1 (la más adelantada),
+ // igual que en la fila real cuando el de adelante se va.
+ if(!lane) return;
+ var enCarril = records.filter(function(r){ return (r.state==="camino"||r.state==="avisado") && r.carril===lane && r.pos; });
+ // agrupar por vehículo (mismo acompañante y misma posición viajan juntos)
+ var vehiculos = [];
+ enCarril.forEach(function(r){
+   var v = vehiculos.find(function(x){ return x.picker===r.picker && x.pos===r.pos; });
+   if(v) v.regs.push(r); else vehiculos.push({picker:r.picker, pos:r.pos, regs:[r]});
+ });
+ vehiculos.sort(function(a,b){ return (+a.pos)-(+b.pos); });   // el de menor número va delante
+ // reasignar posiciones consecutivas desde la 1
+ vehiculos.forEach(function(v,i){
+   var nueva = String(i+1);
+   if(v.pos!==nueva) v.regs.forEach(function(r){ r.pos=nueva; r.avanzo=true; });
+ });
+}
+function esperaMin(r){ return Math.max(0, Math.round((now()-r.time)/60000)); }
+
+function renderPuerta(){
+  var ul=$("puertalist"); ul.innerHTML="";
+  var incoming=records.filter(function(r){return r.state==="camino";}).sort(function(a,b){return a.time-b.time;});
+  $("puertacount").textContent=incoming.length;
+  $("puertaempty").style.display=incoming.length?"none":"block";
+  // El mapa muestra todo vehículo YA UBICADO en el corredor, aunque el niño siga en el aula:
+  // el carro está físicamente ahí y el personal necesita verlo.
+  var enCorredor=records.filter(function(r){
+    return (r.state==="avisado"||r.state==="camino") && r.carril && r.pos;
+  });
+  renderMapa(enCorredor);
+  // alerta de retraso: niños en camino con 10+ minutos de espera
+  var tarde=incoming.filter(function(r){ return esperaMin(r)>=10; });
+  var av=$("latealert");
+  if(!av){ av=document.createElement("div"); av.id="latealert"; av.className="latealert";
+    ul.parentNode.insertBefore(av, ul); }
+  if(tarde.length){ av.style.display="block";
+    av.innerHTML="⚠ <b>"+tarde.length+"</b> esperando más de 10 minutos ("+
+      tarde.map(function(r){return r.name.split(" ")[0];}).join(", ")+") — avisar a coordinación.";
+  } else av.style.display="none";
+
+  // hermanos: mismo acompañante = mismo vehículo
+  var porPicker={};
+  incoming.forEach(function(r){ (porPicker[r.picker]=porPicker[r.picker]||[]).push(r); });
+
+  // agrupar por carril: 1,2,3 y al final los que aún no informaron
+  var grupos=[["1","Carril 1 · junto al edificio"],["2","Carril 2 · del medio"],["3","Carril 3 · exterior"],[null,"Aún sin ubicar"]];
+  grupos.forEach(function(g){
+    var lista=incoming.filter(function(r){ return (g[0]===null)? !r.carril : r.carril===g[0]; });
+    if(!lista.length) return;
+    var h=document.createElement("li");
+    h.innerHTML='<span class="lanegroup">'+g[1]+' · '+lista.length+'</span>';
+    h.style.cssText="list-style:none;border:none;padding:0";
+    ul.appendChild(h);
+    lista.forEach(function(r){
+      var hermanos = porPicker[r.picker].length>1;
+      var min = esperaMin(r);
+      var li=document.createElement("li"); li.className="item";
+      var cv=colorDe(r.color);
+      var badgeEst = cv? ' style="background:'+cv.hex+';color:'+(cv.claro?'#1c2b24':'#fff')+';border:1.5px solid '+(cv.claro?'#c9c6bc':cv.hex)+'"' : '';
+      li.innerHTML='<div class="badge puerta"'+badgeEst+'>'+(r.pos||"?")+'</div>'+
+        '<div class="imain"><div class="iname">'+r.name+' <span style="font-weight:400;color:var(--ink3)">· '+r.aula+'</span>'+
+          (hermanos? '<span class="sibs">'+porPicker[r.picker].length+' en el mismo vehículo</span>':'')+'</div>'+
+        '<div class="isub">Entregar a: '+r.picker+(r.pos? ' · '+POSTXT[r.pos]:'')+(cv? ' · <b>'+cv.nom.toLowerCase()+'</b>':'')+'</div></div>'+
+        '<span class="wait'+(min>=5?' alto':'')+'">'+min+' min</span>'+
+        '<button class="act green" data-id="'+r.id+'">entregado</button>';
+      ul.appendChild(li);
+    });
+  });
+
+  ul.querySelectorAll(".act").forEach(function(b){b.addEventListener("click",function(){
+    var r=records.find(function(x){return x.id==b.getAttribute("data-id");});
+    if(r){
+      var lane=r.carril;
+      r.state="entregado"; r.doneT=Date.now(); r.doneStr=fmt(now());
+      avanzarCarril(lane);   // los que quedan suben de posición
+      saveState();
+    }
+    renderAll();
+  });});
+}
+
+function renderMapa(incoming){
+  var m=$("corrmap");
+  // Edificio a la DERECHA. Columnas de izquierda a derecha: 3 (exterior), 2 (medio), 1 (junto al edificio).
+  // Los vehículos entran por abajo (posición 4) y avanzan hacia la salida (posición 1, arriba).
+  var LANEDESC={"1":"junto al edificio","2":"del medio","3":"exterior"};
+  var ORDEN=["3","2","1"];   // el 1 queda pegado al edificio, a la derecha
+
+  function ocupante(lane,pos){
+    var v=incoming.filter(function(r){return r.carril===lane && r.pos===pos;});
+    if(!v.length) return null;
+    return {nombres:v.map(function(r){return r.name.split(" ")[0];}),
+            aulas:v.map(function(r){return r.aula;}), color:v[0].color, n:v.length,
+            avanzo:v.some(function(r){return r.avanzo;}),
+            esperando:v.every(function(r){return r.state==="avisado";})};
+  }
+
+  var html='<div class="cmtitle">Corredor de carga · vista desde el edificio</div>';
+  html+='<div class="cmgrid">';
+  //  encabezado
+  html+='<div class="cmcell cmcorner">salida ↑</div>';
+  ORDEN.forEach(function(l){
+    html+='<div class="cmcell cmhdr"><b>'+l+'</b><span>'+LANEDESC[l]+'</span></div>';
+  });
+  html+='<div class="cmcell"></div>';
+  //  filas de posiciones (1 arriba = adelante)
+  ["1","2","3","4"].forEach(function(pos,i){
+    html+='<div class="cmcell cmposlbl">'+pos+'</div>';
+    ORDEN.forEach(function(lane){
+      var o=ocupante(lane,pos);
+      if(o){
+        var c=colorDe(o.color);
+        var est=c? ' style="background:'+c.hex+';border-color:'+c.hex+'"':'';
+        var txt=c? (c.claro?'#1c2b24':'#ffffff'):'var(--brand)';
+        var sub=c? (c.claro?'#4a5b52':'#e8eae9'):'var(--ink3)';
+        var sub2 = o.esperando? "esperando al niño" : (o.n>1? o.n+" niños" : o.aulas[0]);
+        html+='<div class="cmslot on'+(o.esperando?" pend":"")+'"'+est+'>'+
+              '<div class="cmname" style="color:'+txt+'">'+o.nombres.join(" + ")+'</div>'+
+              '<div class="cmsub" style="color:'+sub+'">'+sub2+'</div></div>';
+      } else html+='<div class="cmslot"></div>';
+    });
+    // barra del edificio: ocupa las 4 filas (solo se dibuja en la primera)
+    if(i===0) html+='<div class="cmbldgv" style="grid-row:span 4"><span>EDIFICIO CEMEP · aquí esperan los niños</span></div>';
+  });
+  html+='<div class="cmcell cmcorner">entran ↑</div>';
+  html+='</div>';
+
+  var sinUbicar=records.filter(function(r){return (r.state==="avisado"||r.state==="camino") && (!r.carril||!r.pos);}).length;
+  html+='<div class="cmfoot">'+(sinUbicar? sinUbicar+" vehículo(s) en camino, aún sin ubicar" : "Todos los vehículos en camino están ubicados")+'</div>';
+  m.innerHTML=html;
+}
+
+function renderTrack(){
+ var box=$("track"), list=$("tracklist");
+ // mostrar los avisos de la última familia verificada en esta sesión
+ var mios = records.filter(function(r){ return r.tanda===tandaId; });
+ if(!mios.length){ box.style.display="none"; return; }
+ box.style.display="block"; list.innerHTML="";
+ mios.forEach(function(r){
+   var paso = r.state==="avisado"?1:(r.state==="camino"?2:3);
+   var txt  = r.avanzo && r.state==="camino"?"Avanzó a la posición "+r.pos
+            : r.state==="avisado"?"Avisado · el aula lo está preparando"
+            : r.state==="camino" ?"Va en camino a la zona de carga"
+            :                      "Entregado";
+   var d=document.createElement("div"); d.className="trow";
+   var cc=colorDe(r.color);
+   var lb = r.carril? ' <span style="font-weight:400;font-size:11px;color:var(--ink3)">carril '+r.carril+(r.pos?' · '+POSTXT[r.pos]:'')+(cc?' · '+cc.nom.toLowerCase():'')+'</span>' : '';
+   d.innerHTML='<div class="tname">'+r.name+lb+'</div>'+
+     '<div class="tstep">'+
+       '<span class="dot'+(paso>=1?' on':'')+'"></span>'+
+       '<span class="dot'+(paso>=2?' on':'')+'"></span>'+
+       '<span class="dot'+(paso>=3?' on':'')+'"></span>'+
+     '</div>'+
+     '<div class="tlabel'+(paso<2?' wait':'')+'">'+txt+'</div>';
+   list.appendChild(d);
+ });
+}
+function renderHist(){
+ var h=$("histlist"); if(!h) return;
+ var ent = records.filter(function(r){return r.state==="entregado";})
+                  .sort(function(a,b){return b.doneT-a.doneT;});
+ $("histcount").textContent=ent.length;
+ h.innerHTML = ent.length? "" : '<div style="font-size:11.5px;color:var(--ink3)">Aún no hay retiros registrados hoy.</div>';
+ ent.forEach(function(r){
+   var d=document.createElement("div"); d.className="hrow";
+   d.innerHTML='<span class="ht">'+r.doneStr+'</span><span><b>'+r.name+'</b> · '+r.aula+' — retirado por '+r.picker+' (carril '+(r.carril||'?')+(r.pos?', '+POSTXT[r.pos]:'')+(colorDe(r.color)?', '+colorDe(r.color).nom.toLowerCase():'')+')</span>';
+   h.appendChild(d);
+ });
+}
+function renderAll(){renderAula();renderPuerta();renderTrack();renderHist();}
+
+$("simnow").addEventListener("click",function(){
+  simulatedPeak=!simulatedPeak;
+  this.textContent=simulatedPeak?"● en hora pico (simulada)":"simular hora pico";
+  this.style.color=simulatedPeak?"var(--brand)":"";this.style.fontWeight=simulatedPeak?"700":"";tick();
+});
+// ===== aviso automático por ubicación (simulado con el control de distancia) =====
+var RADIO_KM=2.0;      // radio de disparo del aviso automático
+var avisoAutoHecho=false;
+$("autoaviso").addEventListener("change",function(){
+  $("georow").style.display=this.checked?"block":"none";
+  avisoAutoHecho=false;
+  if(this.checked){ $("dist").value=0; }    // empieza lejos
+  actualizaGeo();
+});
+$("dist").addEventListener("input",actualizaGeo);
+function distKm(){ return (50-$("dist").value)/10; }   // 0 a 5 km
+function actualizaGeo(){
+  var km=distKm(), g=$("geostat");
+  if(avisoAutoHecho){
+    g.textContent="✓ Aviso enviado automáticamente al entrar al radio de "+RADIO_KM+" km";
+    g.classList.add("dispara"); return;
+  }
+  g.textContent="Distancia al colegio: "+km.toFixed(1)+" km · aviso automático a "+RADIO_KM+" km";
+  g.classList.toggle("dispara", km<=RADIO_KM);
+  if($("autoaviso").checked && km<=RADIO_KM && verified){
+    avisoAutoHecho=true;
+    g.textContent="✓ Aviso enviado automáticamente al entrar al radio de "+RADIO_KM+" km";
+    g.classList.add("dispara");
+    $("notify").click();
+  }
+}
+// ===== selector de carril =====
+function infoUbicacion(){
+  var n=0;
+  records.forEach(function(r){ if(r.tanda===tandaId && r.state!=="entregado"){ r.carril=carrilSel; r.pos=posSel; r.color=colorSel; n++; } });
+  var txt="";
+  if(!n) txt="Primero avisa que vas en camino.";
+  else if(carrilSel && posSel) txt="✓ Carril <b>"+carrilSel+"</b>, <b>"+POSTXT[posSel]+"</b>"+(colorSel? ", vehículo <b>"+colorDe(colorSel).nom.toLowerCase()+"</b>":"")+" — informado al personal.";
+  else if(carrilSel) txt="✓ Carril <b>"+carrilSel+"</b> informado. Indica también en qué parte del carril.";
+  else txt="Indica también el carril.";
+  $("lanehint").innerHTML=txt;
+  renderAll();
+  saveState();
+}
+(function pintaColores(){
+  var cont=$("colors"); if(!cont) return;
+  COLORES.forEach(function(c){
+    var b=document.createElement("button");
+    b.className="col "+(c.claro?"claro":"oscuro");
+    b.style.background=c.hex; b.title=c.nom; b.setAttribute("data-col",c.id);
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".col").forEach(function(o){o.classList.remove("sel");});
+      b.classList.add("sel"); colorSel=c.id; infoUbicacion();
+    });
+    cont.appendChild(b);
+  });
+})();
+document.querySelectorAll(".pos").forEach(function(bt){
+  bt.addEventListener("click",function(){
+    document.querySelectorAll(".pos").forEach(function(o){o.classList.remove("sel");});
+    bt.classList.add("sel"); posSel=bt.getAttribute("data-pos");
+    infoUbicacion();
+  });
+});
+document.querySelectorAll(".lane").forEach(function(bt){
+  bt.addEventListener("click",function(){
+    document.querySelectorAll(".lane").forEach(function(o){o.classList.remove("sel");});
+    bt.classList.add("sel");
+    carrilSel=bt.getAttribute("data-lane");
+    infoUbicacion();
+  });
+});
+var AUTH_AL="ABCDEFGHJKMNPQRSTUVWXYZ23456789".replace("L","");
+function authCodeGen(){ var c=""; for(var i=0;i<6;i++) c+=AUTH_AL[Math.floor(Math.random()*AUTH_AL.length)]; return c; }
+$("authmk").addEventListener("click",function(){ $("authform").style.display="block"; this.style.display="none"; });
+$("authgo").addEventListener("click",function(){
+  if(!verified || verified.isAuth){ $("authout").textContent="Solo la familia (con su PIN) puede crear autorizaciones."; return; }
+  var code=authCodeGen();
+  auths.push({code:code, lastKey:verified.lastKey, nombre:$("authname").value.trim(),
+              students:verified.students, day:$("daypick").value, used:false, creada:fmt(now())});
+  saveState();
+  $("authout").innerHTML='Código para quien recoge hoy:<br><span class="authcode">'+code+
+    '</span><br>Se usa con el apellido <b>'+$("lastname").value.trim()+
+    '</b>. Vale <b>solo hoy</b> y <b>una sola vez</b>.';
+});
+$("daypick").addEventListener("change",function(){tick();saveState();});
+tick();renderAll();
+
+// ================= PANTALLAS POR ROL + SINCRONIZACIÓN =================
+var ROLE=null;
+function setRole(r){
+  ROLE=r;
+  if(r==="todo"){ document.body.removeAttribute("data-role"); }
+  else document.body.setAttribute("data-role",r);
+  document.getElementById("rolepick").classList.add("oculto");
+  try{ history.replaceState(null,"","#"+TOKENDE[r]); }catch(e){}
+  document.getElementById("nolink").classList.add("oculto");
+  document.getElementById("appwrap").style.display="";
+  var tag=document.querySelector(".tag");
+  if(tag){
+    var nom={padre:"Pantalla del padre",aula:"Pantalla del aula",puerta:"Pantalla de la puerta",todo:"Simulador · las 3 vistas"}[r];
+    if(r==="todo"){
+      tag.innerHTML=nom+' · <button class="rolechip" id="chgrole">cambiar pantalla</button>';
+      document.getElementById("chgrole").addEventListener("click",function(){
+        document.getElementById("rolepick").classList.remove("oculto");
+      });
+    } else {
+      tag.textContent=nom;   // en pantallas individuales no se puede saltar de rol
+    }
+  }
+}
+// ===== ENLACES ÚNICOS DE ACCESO =====
+var TOKENDE={padre:"p-VH6Q9X9U", aula:"a-ZAY53JPR", puerta:"g-ZW8NVEHM", todo:"demo-GBCWZABZ"};
+var ENLACES={}; Object.keys(TOKENDE).forEach(function(k){ ENLACES[TOKENDE[k].toUpperCase()]=k; });
+function rolDeClave(h){ if(!h) return null; return ENLACES[h.replace(/\s+/g,"").toUpperCase()] || null; }
+document.querySelectorAll(".rpcard").forEach(function(bt){
+  bt.addEventListener("click",function(){ setRole(bt.getAttribute("data-role")); });
+});
+document.getElementById("rpfull").addEventListener("click",function(){ setRole("todo"); });
+document.getElementById("rpreset").addEventListener("click",function(){
+  try{ localStorage.removeItem("cemep_estado_v1"); }catch(e){}
+  location.reload();
+});
+(function(){ var h=(location.hash||"").replace("#","");
+  var r=rolDeClave(h); if(r) setRole(r);
+})();
+(function(){
+  var go=document.getElementById("nlgo"), inp=document.getElementById("nlkey");
+  if(!go) return;
+  function intenta(){
+    var r=rolDeClave(inp.value);
+    if(r){ document.getElementById("nlerr").textContent=""; setRole(r); }
+    else document.getElementById("nlerr").textContent="Clave no válida. Revisa mayúsculas parecidas (la clave nunca usa O, cero, I ni uno).";
+  }
+  go.addEventListener("click",intenta);
+  inp.addEventListener("keydown",function(e){ if(e.key==="Enter") intenta(); });
+})();
+
+// ---- estado compartido entre pestañas del mismo navegador (localStorage + sondeo) ----
+var SKEY="cemep_estado_v1", lastV=0, puedeSync=true;
+try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }catch(e){ puedeSync=false; }
+function saveState(){
+  if(!puedeSync) return;
+  lastV=Date.now();
+  try{ localStorage.setItem(SKEY, JSON.stringify({v:lastV, records:records, auths:auths,
+    simPeak:simulatedPeak, day:document.getElementById("daypick").value})); }catch(e){}
+}
+function pollState(){
+  if(!puedeSync) return;
+  var raw; try{ raw=localStorage.getItem(SKEY); }catch(e){ return; }
+  if(!raw) return;
+  var st; try{ st=JSON.parse(raw); }catch(e){ return; }
+  if(!st || !st.v || st.v<=lastV) return;
+  lastV=st.v;
+  records=st.records||[]; auths=st.auths||[];
+  if(typeof st.simPeak==="boolean") simulatedPeak=st.simPeak;
+  var dp=document.getElementById("daypick");
+  if(st.day && dp.value!==st.day){ dp.value=st.day; }
+  tick(); renderAll();
+}
+setInterval(pollState, 800);
+// empezar desde el estado ya guardado (si otra pestaña llegó primero)
+(function(){ if(!puedeSync) return;
+  var raw; try{ raw=localStorage.getItem(SKEY); }catch(e){ return; }
+  if(!raw) return; var st; try{ st=JSON.parse(raw);}catch(e){return;}
+  if(st && st.v){ lastV=0; pollState(); }
+})();
+</script>
+</body>
+</html>
