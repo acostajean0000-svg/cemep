@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulación de flujo · CEMEP</title>
+<style>
+:root{--bg:#f6f5f0;--card:#fff;--ink:#2b2b29;--ink2:#6b6a64;--ink3:#94938c;--line:#d8d6cd;--line2:#b4b2a9;
+--blue-bg:#e6f1fb;--blue-line:#185fa5;--blue-ink:#0c447c;--green-bg:#eaf3de;--green-line:#639922;--green-ink:#27500a;--amber-line:#ba7517;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.5;padding:16px;display:flex;justify-content:center}
+.app{width:100%;max-width:920px}
+h1{font-size:20px;font-weight:600;margin:0 0 2px}
+.sub{color:var(--ink2);font-size:13px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.btn{font-size:13px;padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;border-radius:9px}
+.btn:hover{border-color:var(--line2)}
+.btn.on{background:var(--blue-bg);border-color:var(--blue-line);color:var(--blue-ink);font-weight:600}
+.spacer{flex:1}
+.stat{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px}
+.rl{font-size:11px;color:var(--ink3);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}
+.rv{font-size:22px;font-weight:600}.rv small{font-size:12px;font-weight:400;color:var(--ink2)}
+.phase{font-size:13px;color:var(--blue-ink);min-height:18px;margin-bottom:10px;font-weight:500}
+svg{display:block;width:100%;height:auto;background:var(--bg);border-radius:10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:10px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.note{font-size:12px;color:var(--ink2);margin-top:12px}
+.verdict{margin-top:10px;padding:10px 12px;border-radius:9px;font-size:13px}
+.v-good{background:var(--green-bg);color:var(--green-ink)}.v-bad{background:#fbe9e6;color:#8a3419}
+</style></head><body>
+<div class="app">
+<h1>Flujo de dejar y recoger · Colegio CEMEP</h1>
+<p class="sub">Demanda del pico: <b>133 vehículos</b> (16 aulas · 13 niños · 80% en carro). Tiempo real: ~8 km/h y 35 s de parada por carro con app; sin app la parada es de 2-3 min. Usa "Acelerado" para ver el despacho completo.</p>
+<div class="card">
+<div class="ctl">
+<button class="btn on" id="bH">Con app + 3 carriles</button>
+<button class="btn" id="bA">Sin app (hoy)</button>
+<span class="spacer"></span>
+<button class="btn" id="bPause">&#10073;&#10073; Pausa</button>
+<button class="btn" id="bSpeed">Tiempo real (1×)</button>
+<button class="btn" id="bR">&#8635; Reiniciar</button>
+</div>
+<div class="phase" id="phase"></div>
+<div class="stat">
+<div><div class="rl">Tiempo</div><div class="rv" id="rT">0:00</div></div>
+<div><div class="rl">Despachados</div><div class="rv" id="rD">0</div></div>
+<div><div class="rl">Carros / min</div><div class="rv" id="rR">&mdash;</div></div>
+<div><div class="rl">En el plantel</div><div class="rv" id="rIn">0</div></div>
+<div><div class="rl">Cola en la calle</div><div class="rv" id="rQ">0 <small>carros</small></div></div>
+</div>
+<svg viewBox="0 0 800 470" id="stage" role="img" aria-label="Simulación urbana del flujo"></svg>
+<div class="legend">
+<span><span class="dot" style="background:#5f5e5a"></span>circulando</span>
+<span><span class="dot" style="background:#ba7517"></span>cargando</span>
+<span><span class="dot" style="background:#639922"></span>saliendo</span>
+<span><span class="dot" style="background:#185fa5"></span>estudiante</span>
+<span><span class="dot" style="background:#c9c6bc;border:1px solid #94938c"></span>parqueo fijo</span>
+</div>
+<div class="verdict" id="verdict"></div>
+<p class="note" id="note"></p>
+</div></div>
+<script>
+(function(){
+var NS="http://www.w3.org/2000/svg",stage=document.getElementById("stage");
+function E(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);(p||stage).appendChild(e);return e;}
+
+/* ---- layout ----
+   Two corridors. Each corridor = one band split into 3 lanes by divider lines.
+   Cars travel RIGHT -> LEFT inside a lane. They enter each lane from the right (east),
+   advance left in single file, brake to load (student boards from building/curb side),
+   then continue left and exit at the west end -> up to S.                              */
+var STREET=28, LOTX=40, LOTW=500, LOTX2=LOTX+LOTW;
+var LANE_H=15;                       // lane height
+var LEFT=BX0=100;                    // west end of corridor band (cars exit here)
+var RIGHT=440;                       // east end of corridor band (cars enter here)
+var UPX=470;                         // east vertical spine (approach up / enter corridors)
+var EXITX=70;                        // west vertical spine (down to S -> street)
+var SHX=30, AV_Y=448;  // Calle Shalom (vertical, IZQUIERDA), Av. Colombia (ABAJO)
+var SHALOM_CAP=10;  // capacidad real de la fila en Calle Shalom antes de llegar a la avenida
+var GIROX=UPX;  // giro cerrado en el ESTE (opuesto a la entrada, que viene de Shalom/oeste)
+// corridor 1 (top) three lane center-Y
+var COR1_Y0=98;
+var C1=[COR1_Y0, COR1_Y0+LANE_H, COR1_Y0+2*LANE_H];
+var DG1=C1[2]+14;   // corredor pegado a los diagonales del centro
+var Y_APPR=DG1+44, Y_ENTRY=360, Y_EXIT=60;   // carril de entrada pegado a su fila de parqueos
+var turnBusy=null;   // embudo: solo un carro toma el giro cerrado a la vez
+var SLOT0=150, SLOTGAP=72, NSLOT=4;   // 4 posiciones de carga por carril
+var ENTRADA_CAP=5;   // 5 vehículos en fila en el carril de entrada
+var ESLOT0, ESLOTGAP;   // posiciones de la fila del carril de entrada (se calculan tras definir BX0/RIGHT)
+var CARW=17, CARGAP=23, SP=19;
+ESLOTGAP = (RIGHT-40 - (BX0+20)) / (5-1);   // separación entre los 5 puestos del carril de entrada
+ESLOT0   = BX0+20;                           // primer puesto (más al oeste, junto al acceso)   // 19 px/s ≈ 2.2 m/s ≈ 8 km/h (paso de parqueo escolar)
+
+var mode="H",running=true,SPEEDS=[1,4,10],si=0;  // 1x = tiempo real; 4x/10x aceleran la demo
+var cars=[],t=0,disp=0,nid=0,tNext=0;
+var TOTAL=133, generados=0;window.__fin=false;   // demanda del pico: 133 vehículos (16 aulas · 13 niños · 80% en carro)
+// lane queues: each lane is an array of cars ordered front(west)->back(east)
+var L={}; ["1_0","1_1","1_2"].forEach(function(k){L[k]=[];});
+var laneA=[]; // sistema actual: single lane in C1[0]
+var gCars,gKids,gLbl;
+var CIRC="#5f5e5a",CLOAD="#ba7517",CGO="#639922",CKID="#185fa5";
+
+function scene(){
+ stage.innerHTML="";
+ // ===== CONTEXTO URBANO (orientación del mapa) =====
+ // Calle Shalom: VERTICAL a la IZQUIERDA
+ E("rect",{x:12,y:0,width:34,height:470,fill:"#e8e6df",stroke:"#cfccc0","stroke-width":1});
+ E("line",{x1:29,y1:0,x2:29,y2:470,stroke:"#fff","stroke-width":1.5,"stroke-dasharray":"12 10","stroke-opacity":.8});
+ var ts=E("text",{x:29,y:200,"font-size":10,fill:"#7d7b72","font-weight":"bold","text-anchor":"middle"});
+ ts.setAttribute("transform","rotate(-90 29 200)");ts.textContent="Calle Shalom";
+ // ===== GRÁFICA DE LA FILA DE ESPERA =====
+ // Tramo de Shalom con capacidad de 14 vehículos (90 m)
+ var yIni=Y_APPR+22, yFin=Y_APPR+30+(SHALOM_CAP-1)*16+8;
+ E("rect",{x:SHX-11,y:yIni,width:22,height:yFin-yIni,rx:3,fill:"#f6ecd8","fill-opacity":.55,stroke:"#c98a2b","stroke-width":.8,"stroke-dasharray":"3 3"});
+ // marcas de los 14 puestos
+ for(var q=0;q<SHALOM_CAP;q++){
+   E("line",{x1:SHX-9,y1:Y_APPR+30+q*16-7,x2:SHX+9,y2:Y_APPR+30+q*16-7,stroke:"#c98a2b","stroke-width":.35,"stroke-opacity":.5});
+ }
+ E("text",{x:SHX+15,y:yIni+11,"font-size":7.5,fill:"#854f0b","font-weight":"bold"}).textContent="fila de espera";
+ E("text",{x:SHX+15,y:yIni+21,"font-size":7,fill:"#854f0b"}).textContent="90 m · 10 autos";
+ // línea de "desborde": a partir de aquí la fila invade la avenida
+ E("line",{x1:SHX-14,y1:yFin,x2:SHX+40,y2:yFin,stroke:"#a8352a","stroke-width":1.2,"stroke-dasharray":"4 3"});
+ E("text",{x:SHX+44,y:yFin-4,"font-size":7.5,fill:"#a8352a","font-weight":"bold"}).textContent="↓ desborda a la avenida";
+ // zona de desborde sobre la avenida
+ E("rect",{x:SHX+22,y:AV_Y-9,width:300,height:18,rx:3,fill:"#f7e6e3","fill-opacity":.5,stroke:"#a8352a","stroke-width":.7,"stroke-dasharray":"3 3"});
+ E("text",{x:SHX+200,y:AV_Y+22,"font-size":7.5,fill:"#a8352a","text-anchor":"middle","font-weight":"bold"}).textContent="zona de desborde (fila sobre la avenida)";
+ // Av. República de Colombia: ABAJO, horizontal
+ E("rect",{x:0,y:446,width:800,height:34,fill:"#e8e6df",stroke:"#cfccc0","stroke-width":1});
+ E("line",{x1:0,y1:463,x2:800,y2:463,stroke:"#fff","stroke-width":1.5,"stroke-dasharray":"12 10","stroke-opacity":.8});
+ E("text",{x:400,y:467,"font-size":11,fill:"#7d7b72","font-weight":"bold","text-anchor":"middle"}).textContent="Av. República de Colombia";
+ // vía de acceso: sale de Shalom (izquierda) hacia la derecha (este), a la altura del carril de entrada
+ E("path",{d:"M 46 "+Y_APPR+" L "+BX0+" "+Y_APPR,fill:"none",stroke:"#dce9f6","stroke-width":16,"stroke-linecap":"butt"});
+ E("path",{d:"M 46 "+Y_APPR+" L "+BX0+" "+Y_APPR,fill:"none",stroke:"#185fa5","stroke-width":1,"stroke-opacity":.5,"stroke-dasharray":"4 4"});
+ E("text",{x:(46+BX0)/2,y:Y_APPR-11,"font-size":8,fill:"#0c447c","text-anchor":"middle"}).textContent="acceso →";
+ E("rect",{x:LOTX,y:52,width:LOTW,height:352,rx:12,fill:"none",stroke:"#b4b2a9","stroke-width":1.2,"stroke-dasharray":"8 5"});
+ E("rect",{x:BX0-8,y:58,width:(RIGHT-BX0)+50,height:14,rx:5,fill:"#f1efe8",stroke:"#b4b2a9","stroke-width":.8});
+ E("text",{x:(BX0+RIGHT)/2,y:68,"font-size":10,fill:"#5f5e5a","text-anchor":"middle","font-weight":"bold"}).textContent="Edificio CEMEP";
+ corridor(C1,"CORREDOR DE CARGA (3 carriles)");
+ diagRow(DG1);
+ // bordillo verde con árboles
+ E("rect",{x:BX0,y:DG1+13,width:RIGHT-BX0,height:5,rx:2,fill:"#eaf3de",stroke:"#639922","stroke-width":.9});
+ for(var tx=BX0+20; tx<RIGHT-10; tx+=70){ E("circle",{cx:tx,cy:DG1+15.5,r:3.5,fill:"#639922"}); }
+ // segunda fila de parqueos diagonales, bajo el bordillo (mismo dibujo)
+ diagRow(DG1+26);
+ // carril de aproximación (pegado al bordillo)
+ // carril de entrada resaltado como franja de circulación (pasillo entre diagonales y perpendiculares)
+ E("rect",{x:BX0,y:Y_APPR-9,width:RIGHT-BX0,height:18,rx:3,fill:"#dce9f6",stroke:"#185fa5","stroke-width":1});
+ E("line",{x1:BX0,y1:Y_APPR,x2:RIGHT,y2:Y_APPR,stroke:"#185fa5","stroke-width":.6,"stroke-dasharray":"4 4","stroke-opacity":.4});
+ E("text",{x:BX0+70,y:Y_APPR-12,"font-size":8,fill:"#0c447c","font-weight":"bold"}).textContent="CARRIL DE ENTRADA · 5 vehículos en fila";
+ // parqueos RECTOS (90°) al otro lado del carril de aproximación
+ rectRow(Y_APPR+16);
+ // marcas de las 5 posiciones de espera en el carril de entrada
+ for(var ke=0;ke<5;ke++){ var ex=BX0+40+ke*((RIGHT-BX0-70)/5);
+   E("line",{x1:ex,y1:Y_APPR-8,x2:ex,y2:Y_APPR+8,stroke:"#185fa5","stroke-width":.4,"stroke-opacity":.35}); }
+ // GIRO CERRADO (único acceso al corredor) — arco marcado en la esquina este
+ // giro cerrado en el ESTE: sube del carril de entrada al corredor
+ E("path",{d:"M "+GIROX+" "+Y_APPR+" Q "+(GIROX+8)+" "+Y_APPR+" "+GIROX+" "+(Y_APPR-18),fill:"none",stroke:"#ba7517","stroke-width":2,"stroke-dasharray":"3 3"});
+ E("path",{d:"M "+GIROX+" "+(C1[2]+8)+" L "+GIROX+" "+(Y_APPR-18),fill:"none",stroke:"#ba7517","stroke-width":2,"stroke-dasharray":"3 3"});
+ E("circle",{cx:GIROX,cy:Y_APPR,r:9,fill:"#faeeda",stroke:"#ba7517","stroke-width":1.4});
+ E("text",{x:GIROX,y:Y_APPR+3,"font-size":8,"font-weight":"bold",fill:"#854f0b","text-anchor":"middle"}).textContent="1";
+ E("text",{x:GIROX+13,y:Y_APPR-2,"font-size":8,fill:"#854f0b"}).textContent="giro (1 auto)";
+ // entry / exit
+ E("circle",{cx:BX0-2,cy:Y_APPR,r:11,fill:"#fcebeb",stroke:"#a32d2d","stroke-width":1.3});
+ E("text",{x:BX0-2,y:Y_APPR+3.5,"font-size":11,"font-weight":"bold",fill:"#a32d2d","text-anchor":"middle"}).textContent="E";
+ E("circle",{cx:EXITX,cy:C1[1],r:11,fill:"#f1efe8",stroke:"#5f5e5a","stroke-width":1.3});
+ E("text",{x:EXITX,y:C1[1]+3.5,"font-size":11,"font-weight":"bold",fill:"#5f5e5a","text-anchor":"middle"}).textContent="S";
+ E("text",{x:EXITX,y:C1[1]-15,"font-size":10,fill:"#5f5e5a","text-anchor":"middle"}).textContent="salida";
+ gLbl=E("g",{});gKids=E("g",{});gCars=E("g",{});
+}
+function corridor(cs,label){
+ var top=cs[0]-LANE_H/2, h=LANE_H*3;
+ // band
+ E("rect",{x:BX0,y:top,width:RIGHT-BX0,height:h,fill:"#eef6fd",stroke:"#185fa5","stroke-width":1,"stroke-opacity":.8});
+ // 2 divider dashed lines between 3 lanes
+ E("line",{x1:BX0,y1:cs[0]+LANE_H/2,x2:RIGHT,y2:cs[0]+LANE_H/2,stroke:"#185fa5","stroke-width":.7,"stroke-dasharray":"6 5","stroke-opacity":.55});
+ E("line",{x1:BX0,y1:cs[1]+LANE_H/2,x2:RIGHT,y2:cs[1]+LANE_H/2,stroke:"#185fa5","stroke-width":.7,"stroke-dasharray":"6 5","stroke-opacity":.55});
+ E("text",{x:BX0+2,y:top-4,"font-size":8.5,fill:"#0c447c","font-weight":"bold"}).textContent=label+"  ·  4 posiciones por carril";
+ // tick marks de las 4 posiciones por carril
+ for(var li=0;li<3;li++){for(var k=0;k<4;k++){var px=150+k*72;
+   E("line",{x1:px,y1:cs[li]-6,x2:px,y2:cs[li]+6,stroke:"#185fa5","stroke-width":.4,"stroke-opacity":.35});}}
+ E("text",{x:RIGHT-6,y:cs[1]+3,"font-size":9,fill:"#94938c","text-anchor":"end"}).textContent="\u2190";
+}
+function diagRow(y){ for(var i=0;i<7;i++){ var x=BX0+30+i*((RIGHT-BX0-60)/7);
+ E("rect",{x:x-8,y:y-4,width:16,height:8,rx:2,fill:"#c9c6bc",stroke:"#94938c","stroke-width":.5,transform:"rotate(30 "+x+" "+y+")"}); } }
+function rectRow(y){ for(var i=0;i<8;i++){ var x=BX0+16+i*((RIGHT-BX0-40)/8);
+  E("rect",{x:x,y:y-3,width:11,height:20,rx:2,fill:"#e8e6df",stroke:"#94938c","stroke-width":.5}); } }
+function carShape(){var g=E("g",{},gCars);
+ E("rect",{x:-CARW/2,y:-4,width:CARW,height:8,rx:2.3,fill:CIRC,"class":"body"},g);
+ E("rect",{x:CARW/2-6,y:-2.6,width:5,height:5.2,rx:1,fill:"#fff","fill-opacity":.45},g);return g;}
+function col(c,x){c.g.querySelector(".body").setAttribute("fill",x);}
+function kid(c){c.kid=E("circle",{cx:c.x,cy:c.y-11,r:3.2,fill:CKID},gKids);}
+function unkid(c){if(c.kid){c.kid.remove();c.kid=null;}}
+function laneAngle(c){
+ // orientación estable según el tramo donde está el vehículo
+ if(c.state==="street") return 90;                       // en cola en Shalom, mirando al sur
+ if(c.state==="urban"){
+   if(Math.abs(c.y-AV_Y)<12) return 180;                 // avenida: va hacia el oeste
+   if(Math.abs(c.x-SHX)<14) return -90;                  // Shalom: sube hacia el norte
+   return c.ang||0;
+ }
+ if(Math.abs(c.y-Y_APPR)<7) return 0;                    // carril de entrada: va hacia el ESTE (hacia el giro)
+ if(Math.abs(c.x-GIROX)<10 && c.y<Y_APPR-4) return -90;  // tomando el giro: hacia arriba
+ if(c.y<=C1[2]+8){
+   // recién entrado por el giro (boca este del corredor): aún acomodándose
+   if(c.x>RIGHT-14 && c.state==="enter") return -90;      // terminando de subir
+   return 180;                                            // dentro del corredor: al oeste
+ }
+ return c.ang||0;
+}
+function place(c){var a=laneAngle(c); c.ang=a;
+ c.g.setAttribute("transform","translate("+c.x.toFixed(1)+","+c.y.toFixed(1)+") rotate("+a+")");
+ if(c.kid)c.kid.setAttribute("cx",c.x);}
+/* choose corridor + lane for a new car (Híbrido) */
+function pickLane(){
+ var loadLanes = peak()? [0,1,2] : [0,2];
+ var cand=loadLanes.filter(function(li){return L["1_"+li].length<4;});
+ if(cand.length===0)cand=loadLanes;
+ var best=cand[0],bn=1e9;
+ cand.forEach(function(li){var n=L["1_"+li].length;if(n<bn){bn=n;best=li;}});
+ return {cor:"1", lane:best};
+}
+function peak(){ return cars.filter(function(c){return c.state==="corr"||c.state==="load";}).length>=6; }
+
+function laneY(cor,li){ return C1[li]; }
+function laneKey(c){ return c.cor+"_"+c.lane; }
+
+function entradaCount(){ return cars.filter(function(c){return (c.state==="enter"||c.state==="urban") && Math.abs(c.y-Y_APPR)<7;}).length; }
+function spawn(){
+ if(generados>=TOTAL) return;      // ya se generó toda la demanda
+ if(cars.length>=45)return;
+ // 80% llega por la avenida (abajo), 20% directo por Shalom
+ var viaAvenida = Math.random()<0.8;
+ var sx = viaAvenida ? 820 : SHX;   // avenida entra por la derecha-abajo; Shalom directo desde abajo
+ var sy = viaAvenida ? AV_Y : 470;
+ var c={id:nid++,x:sx,y:sy,ang:0,state:"urban",g:carShape()}; generados++;
+ if(entradaCount()>=ENTRADA_CAP){ street(c); cars.push(c); return; }   // carril de entrada lleno
+ if(mode==="H"){
+   var tot=L["1_0"].length+L["1_1"].length+L["1_2"].length;
+   var pk0=pickLane(); if(L["1_"+pk0.lane].length>=4){ // carril lleno, intenta otro
+     var lanesTry=peak()?[0,1,2]:[0,2]; var free=lanesTry.filter(function(li){return L["1_"+li].length<4;});
+     if(free.length===0){street(c);cars.push(c);return;} }
+   var pk=pickLane(); c.cor=pk.cor; c.lane=pk.lane; c.isBypass=false;
+ }else{
+   if(laneA.length>=4){street(c);cars.push(c);return;}
+   c.cor="1"; c.lane=0;
+ }
+ cars.push(c);
+ // path: enter bottom-left -> right along approach -> up east spine -> into lane at RIGHT end
+ var ly=laneY(c.cor,c.lane);
+ // tramo urbano: avenida -> baja Shalom -> acceso -> entrada del carril
+ var urban = viaAvenida
+   ? [{x:SHX,y:AV_Y},{x:SHX,y:Y_APPR}]      // avenida -> esquina Shalom -> sube a la altura del acceso
+   : [{x:SHX,y:Y_APPR}];                     // Shalom directo -> sube al acceso
+ // entra por el OESTE (acceso desde Shalom), recorre el carril oeste->este, gira en el ESTE al corredor
+ var plant = [{x:BX0-2,y:Y_APPR},{x:GIROX,y:Y_APPR},{x:GIROX,y:ly},{x:RIGHT-6,y:ly}];
+ c.wps = urban.concat(plant);
+ c.wi=0;
+ c.urbanCount = urban.length; // cuántos waypoints son "urbanos" (antes de entrar al plantel)
+ if(mode==="H"){ L[laneKey(c)].push(c); } else { laneA.push(c); }
+}
+function street(c){
+ c.state="street";
+ var n=cars.filter(function(k){return k.state==="street";}).length;   // posición en la fila
+ var PASO=16;
+ // La fila se forma en Calle Shalom, bajando desde el acceso hacia la avenida.
+ // Capacidad de Shalom = SHALOM_CAP (14). Al superarla, la fila DOBLA hacia la avenida (desborde).
+ var yFinShalom = Y_APPR + 30 + (SHALOM_CAP-1)*PASO;   // último puesto dentro de Shalom
+ if(n < SHALOM_CAP){
+   c.x = SHX;
+   c.y = Y_APPR + 30 + n*PASO;
+   c.ang = 90;                      // mirando hacia el sur (bajando por Shalom)
+   c.overflow = false;
+ } else {
+   // desborde: se acumulan sobre la Av. República de Colombia, hacia el este
+   var k = n - SHALOM_CAP;
+   c.x = SHX + 26 + k*22;
+   c.y = AV_Y;
+   c.ang = 180;                     // sobre la avenida
+   c.overflow = true;
+ }
+ c.wps=[{x:c.x,y:c.y}]; c.wi=0;
+}
+
+function frontTargetX(c){
+ var arr = (mode==="H")? L[laneKey(c)] : laneA;
+ // Híbrido bypass: no carga, rueda directo a salida
+ if(mode==="H" && c.isBypass) return BX0+4;
+ // Si ya reservó una posición VÁLIDA, la conserva (no perseguir un objetivo móvil)
+ if(c.slotX!==undefined && c.slotX!==null){
+   var valido=false;
+   for(var kv=0;kv<NSLOT;kv++){ if(Math.abs(c.slotX-(SLOT0+kv*SLOTGAP))<1){ valido=true; break; } }
+   if(valido) return c.slotX;
+   c.slotX=undefined;   // slot inválido (fuera del carril): descartar y reasignar
+ }
+ // Reservar la posición libre más adelantada (menor x = más adelante en el corredor)
+ for(var k=0;k<NSLOT;k++){
+   var px = SLOT0 + k*SLOTGAP;
+   var taken = arr.some(function(o){
+     if(o===c) return false;
+     if(o.state==="done"||o.state==="exit") return false;
+     // ocupada si otro la reservó (slotX) o está físicamente cerca
+     return (o.slotX!==undefined && Math.abs(o.slotX-px)<1) || Math.abs(o.x-px)<SLOTGAP*0.6;
+   });
+   if(!taken){ c.slotX = px; return px; }
+ }
+ // todas ocupadas: sin cupo (no debe entrar al corredor)
+ return null;
+}
+
+function drive(c,dt){
+ if(c.state==="street"){ place(c); return; }
+ var s=SP*dt;
+ if(c.state==="urban"){
+   var w=c.wps[c.wi];
+   var dx=w.x-c.x,dy=w.y-c.y,d=Math.hypot(dx,dy);
+   if(d>0.6)c.ang=Math.atan2(dy,dx)*57.2958;
+   if(d<=s){
+     // no incorporarse al carril si la boca está ocupada: espera en el acceso
+     if(c.wi+1>=c.urbanCount){
+       var enCarril = cars.filter(function(o){
+         return o!==c && o.state==="enter" && Math.abs(o.y-Y_APPR)<7;
+       }).length;
+       var bocaOcupada = cars.some(function(o){
+         return o!==c && (o.state==="enter") && Math.abs(o.y-Y_APPR)<7 && Math.abs(o.x-(BX0-2))<CARGAP;
+       });
+       // el carril de entrada admite como máximo ENTRADA_CAP vehículos
+       if(bocaOcupada || enCarril>=ENTRADA_CAP){ place(c); return; }
+     }
+     c.x=w.x;c.y=w.y;c.wi++;
+     if(c.wi>=c.urbanCount){ c.state="enter"; }
+   } else { c.x+=dx/d*s;c.y+=dy/d*s; }
+   place(c);return;
+ }
+ if(c.state==="enter"){
+   var w=c.wps[c.wi];
+   // EMBUDO: el giro cerrado (waypoint x=UPX,y=Y_APPR) admite un solo carro a la vez.
+   // Si el carro está a punto de entrar al giro y el giro está ocupado por otro, espera.
+   var atTurnApproach = (Math.abs(c.x-GIROX)<4 && Math.abs(c.y-Y_APPR)<4 && w && w.x===GIROX && w.y<Y_APPR-2);
+   if(atTurnApproach){
+     if(turnBusy!==null && turnBusy!==c.id){ place(c); return; } // espera su turno
+     // no entrar al corredor si no hay posición de carga libre en su carril
+     var arrL=(mode==="H")?L[laneKey(c)]:laneA;
+     var libres=0;
+     for(var kk=0;kk<NSLOT;kk++){
+       var pxk=SLOT0+kk*SLOTGAP;
+       var occ=arrL.some(function(o){ return o!==c && o.state!=="done" && o.state!=="exit" &&
+         ((o.slotX!==undefined && o.slotX!==null && Math.abs(o.slotX-pxk)<1) || Math.abs(o.x-pxk)<SLOTGAP*0.6); });
+       if(!occ) libres++;
+     }
+     if(libres===0){ place(c); return; }   // corredor lleno: espera en el carril de entrada
+     turnBusy=c.id; // toma el giro
+   }
+   // Carril de entrada: fila hacia el giro, respetando distancia y el embudo.
+   if(Math.abs(c.y-Y_APPR)<7){
+     // no encimarse con el de adelante (delante = mayor x, van hacia el este)
+     var blocked=cars.some(function(o){
+       if(o===c) return false;
+       if(o.state!=="enter") return false;
+       if(Math.abs(o.y-Y_APPR)>7) return false;
+       return (o.x > c.x) && (o.x - c.x) < CARGAP;
+     });
+     if(blocked){ place(c); return; }
+     // tope en la boca del giro si está ocupado: se detiene antes, no se apila encima
+     if(turnBusy!==null && turnBusy!==c.id && c.x > GIROX-CARGAP){
+       c.x = Math.min(c.x, GIROX-CARGAP); place(c); return;
+     }
+   }
+   var dx=w.x-c.x,dy=w.y-c.y,d=Math.hypot(dx,dy);
+   // orientación: siempre mirando hacia donde se dirige el waypoint actual
+   if(d>0.4){ c.ang=Math.atan2(dy,dx)*57.2958; }
+   else if(Math.abs(c.y-Y_APPR)<6){ c.ang=180; }   // en el carril de entrada mira al oeste
+   if(d<=s){
+     c.x=w.x;c.y=w.y;c.wi++;
+     // liberó el giro al completar la subida al corredor (cuando llega a la altura del carril de carga)
+     if(turnBusy===c.id && Math.abs(c.y-c.wps[c.wps.length-1].y)<3) turnBusy=null;
+     if(c.wi>=c.wps.length){c.state="corr";c.ang=180; if(turnBusy===c.id) turnBusy=null;}
+   }
+   else{c.x+=dx/d*s;c.y+=dy/d*s;}
+   place(c);return;
+ }
+ if(c.state==="corr"){
+   c.ang=180;
+   var tx=frontTargetX(c);
+   if(tx===null){ place(c); return; }   // sin posición libre: espera sin apilarse
+   // no puede pasar por encima del de adelante: si hay uno muy cerca delante, se detiene detrás
+   var bloqueado=false;
+   var arrLane=(mode==="H")?L[laneKey(c)]:laneA;
+   arrLane.forEach(function(o){
+     if(o===c) return;
+     if(o.state!=="corr" && o.state!=="load") return;
+     if(o.x < c.x && (c.x-o.x) < CARGAP) bloqueado=true;
+   });
+   // también respetar a los que aún están saliendo por este mismo carril
+   cars.forEach(function(o){
+     if(o===c || o.state!=="exit") return;
+     if(Math.abs(o.y-c.y)<LANE_H*0.6 && o.x<c.x && (c.x-o.x)<CARGAP) bloqueado=true;
+   });
+   if(bloqueado){ place(c); return; }   // espera detrás, no adelanta
+   if(c.x> tx+0.5){ c.x-=Math.min(s, c.x-tx); place(c);
+     if(c.x<=tx+0.6 && !c.isBypass){
+       var ok=false; for(var k2=0;k2<NSLOT;k2++){ if(Math.abs(c.x-(SLOT0+k2*SLOTGAP))<6){ ok=true; break; } }
+       if(ok){ c.state="load"; c.loadT=t+(mode==="H"?35:150); kid(c); col(c,CLOAD); }
+     }
+   } else { place(c);
+     // sólo carga si de verdad está en una posición de carga (no encimado en la boca del carril)
+     var enPosicion = false;
+     for(var kk=0;kk<NSLOT;kk++){ if(Math.abs(c.x-(SLOT0+kk*SLOTGAP))<6){ enPosicion=true; break; } }
+     if(!c.isBypass && c.state==="corr" && enPosicion){
+       c.state="load"; c.loadT=t+(mode==="H"?35:150); kid(c); col(c,CLOAD);
+     }
+   }
+   if(c.isBypass && c.x<=BX0+5){ startExit(c); }
+   return;
+ }
+ if(c.state==="load"){
+   if(t>=c.loadT){ startExit(c); }
+   return;
+ }
+ if(c.state==="exit"){
+   var w=c.wps[c.wi];
+   var dx=w.x-c.x,dy=w.y-c.y,d=Math.hypot(dx,dy);
+   if(d>0.6)c.ang=Math.atan2(dy,dx)*57.2958;
+   if(d<=s){c.x=w.x;c.y=w.y;c.wi++;if(c.wi>=c.wps.length){fin(c);return;}}
+   else{c.x+=dx/d*s;c.y+=dy/d*s;}
+   place(c);return;
+ }
+}
+// ¿hay espacio libre en el carril central (rebase) a la altura x para incorporarse?
+function centralLibre(x, self){
+ var libre = true;
+ cars.forEach(function(o){
+   if(o===self) return;
+   if(o.state==="done"||o.state==="street"||o.state==="urban") return;
+   // Solo estorban los que van CIRCULANDO por el carril central (saliendo).
+   // Los que están cargando en su posición no bloquean el paso: se rebasa por el central.
+   if(o.state!=="exit") return;
+   if(Math.abs(o.y - C1[1]) < LANE_H*0.6 && Math.abs(o.x - x) < CARGAP*1.2) libre=false;
+ });
+ return libre;
+}
+function startExit(c){
+ // para salir hay que pasarse al carril central: sólo si hay hueco libre
+ if(!centralLibre(c.x, c)){
+   if(c.waitSince===undefined) c.waitSince=t;
+   c.waitingGap=true;
+   if(t - c.waitSince < 15) return;    // espera un hueco (máx. 15 s, luego se incorpora igual)
+ }
+ c.waitingGap=false; c.waitSince=undefined;
+ c.state="exit";unkid(c);col(c,CGO);c.slotX=undefined;  // libera la posición para el siguiente
+ var arr=(mode==="H")?L[laneKey(c)]:laneA; var ix=arr.indexOf(c); if(ix>=0)arr.splice(ix,1);
+ // sale por el carril central hacia el oeste, luego S y baja por Shalom
+ c.wps=[{x:BX0-2,y:C1[1]},{x:EXITX,y:C1[1]},{x:SHX,y:C1[1]},{x:SHX,y:470}];
+ c.wi=0;
+}
+function fin(c){c.state="done";c.g.remove();unkid(c);disp++;}
+
+function layoutCola(){
+ // Recoloca toda la fila de espera: primero los 14 de Shalom, el resto desborda a la avenida
+ var fila = cars.filter(function(c){ return c.state==="street"; });
+ var PASO=16;
+ fila.forEach(function(c,n){
+   if(n < SHALOM_CAP){
+     c.x = SHX; c.y = Y_APPR + 30 + n*PASO; c.ang=90; c.overflow=false;
+   } else {
+     var k=n-SHALOM_CAP;
+     c.x = SHX + 26 + k*22; c.y = AV_Y; c.ang=180; c.overflow=true;
+   }
+   place(c);
+ });
+}
+function enforceExitGap(){
+ // separación entre autos que van saliendo (no deben encimarse en el carril central ni en Shalom)
+ var out = cars.filter(function(c){ return c.state==="exit"; });
+ for(var i=0;i<out.length;i++){
+   for(var j=i+1;j<out.length;j++){
+     var a=out[i], b2=out[j];
+     if(Math.abs(a.y-b2.y)>LANE_H*0.7) continue;         // distinto carril: no aplica
+     var d=Math.abs(a.x-b2.x);
+     if(d<CARGAP && d>0.01){
+       if(a.x>b2.x){ a.x=b2.x+CARGAP; place(a); } else { b2.x=a.x+CARGAP; place(b2); }
+     }
+   }
+ }
+}
+function enforceEntradaGap(){
+ // Fila ordenada en el CARRIL DE ENTRADA: hasta 5 vehículos en puestos fijos.
+ // Avanzan hacia el ESTE (hacia el giro); el puesto 4 es el más cercano al giro.
+ var fila = cars.filter(function(c){ return (c.state==="enter") && Math.abs(c.y-Y_APPR)<7; });
+ // el que va más adelante (mayor x) toma el puesto más cercano al giro
+ fila.sort(function(a,b){ return b.x-a.x; });
+ fila.forEach(function(c,i){
+   var puesto = ENTRADA_CAP-1-i;                 // 4,3,2,1,0 desde el giro hacia atrás
+   if(puesto<0) puesto=0;
+   c.filaX = ESLOT0 + puesto*ESLOTGAP;
+ });
+ // separación mínima, ajuste gradual (nunca saltos)
+ for(var i=1;i<fila.length;i++){
+   var delante=fila[i-1], atras=fila[i];
+   var maxX = delante.x - CARGAP;
+   if(atras.x > maxX){
+     var corr = Math.min(atras.x - maxX, 2.5);
+     atras.x -= corr; place(atras);
+   }
+ }
+}
+function enforceGap(){
+ // Nadie puede pasar por encima de otro en el MISMO carril.
+ // Se compara por posición física real (no por orden en el arreglo).
+ // En el corredor los autos avanzan hacia el oeste (x decreciente): "delante" = menor x.
+ function pass(arr){
+   arr.forEach(function(b){
+     if(b.state!=="corr") return;          // solo frena a los que están circulando
+     var limit=null;
+     arr.forEach(function(o){
+       if(o===b) return;
+       if(o.state!=="corr" && o.state!=="load") return;
+       if(o.x < b.x){                       // o está delante de b (más al oeste)
+         var minX = o.x + CARGAP;           // no puede acercarse más que CARGAP
+         if(limit===null || minX>limit) limit=minX;
+       }
+     });
+     if(limit!==null && b.x<limit){ b.x=limit; place(b); }   // clamp, conserva su orientación
+   });
+ }
+ if(mode==="H"){["1_0","1_1","1_2"].forEach(function(k){pass(L[k]);});}
+ else pass(laneA);
+}
+function promote(){
+ // Reincorpora autos de la cola SOLO si hay espacio en el carril de entrada (máx. ENTRADA_CAP)
+ var enCola = cars.filter(function(c){return c.state==="street";});
+ for(var i=0;i<enCola.length;i++){
+   var c = enCola[i];
+   if(entradaCount() >= ENTRADA_CAP) break;         // carril lleno: los demás siguen esperando
+   // además, la boca del carril debe estar despejada
+   var bocaOcupada = cars.some(function(o){
+     return o.state==="enter" && Math.abs(o.y-Y_APPR)<7 && Math.abs(o.x-(BX0-2))<CARGAP;
+   });
+   if(bocaOcupada) break;
+   if(mode==="H"){
+     var lanesT=peak()?[0,1,2]:[0,2];
+     var hasFree=lanesT.some(function(li){return L["1_"+li].length<NSLOT;});
+     if(!hasFree) break;                            // corredor lleno
+     var pk=pickLane(); c.cor=pk.cor; c.lane=pk.lane; c.isBypass=false;
+     var ly=laneY(c.cor,c.lane);
+     c.state="enter"; c.x=BX0-2; c.y=Y_APPR; c.slotX=undefined;
+     c.wps=[{x:BX0-2,y:Y_APPR},{x:RIGHT,y:Y_APPR},{x:UPX,y:Y_APPR},{x:UPX,y:ly},{x:RIGHT-6,y:ly}];
+     c.wi=1; L[c.cor+"_"+c.lane].push(c);
+   } else {
+     if(laneA.length>=NSLOT) break;
+     c.cor="1"; c.lane=0; var ly2=C1[0];
+     c.state="enter"; c.x=BX0-2; c.y=Y_APPR; c.slotX=undefined;
+     c.wps=[{x:BX0-2,y:Y_APPR},{x:RIGHT,y:Y_APPR},{x:UPX,y:Y_APPR},{x:UPX,y:ly2},{x:RIGHT-6,y:ly2}];
+     c.wi=1; laneA.push(c);
+   }
+ }
+}
+
+function phase(){var p=document.getElementById("phase");
+ var waitingTurn=cars.filter(function(c){return c.state==="enter" && Math.abs(c.y-Y_APPR)<4 && c.x>=GIROX-CARGAP*4;}).length;
+ var loading=cars.filter(function(c){return c.state==="load";}).length;
+ if(mode==="H"){p.textContent="CON APP · carga 35 seg · "+(peak()?"3 carriles (pico)":"carriles 1 y 3 + rebase")+" · "+loading+" cargando · giro: "+(turnBusy!==null?"ocupado":"libre")+(waitingTurn>0?" ("+waitingTurn+" esperando)":"");}
+ else p.textContent="SIN APP · el niño se busca cuando llega el carro (2-3 min) · el carro bloquea el carril · "+loading+" esperando a su niño";}
+
+function reset(){
+ scene();cars=[];t=0;disp=0;nid=0;tNext=0;generados=0;window.__fin=false;
+ ["1_0","1_1","1_2"].forEach(function(k){L[k]=[];});laneA=[];
+ document.getElementById("bH").classList.toggle("on",mode==="H");
+ document.getElementById("bA").classList.toggle("on",mode==="A");
+ var v=document.getElementById("verdict");v.className="verdict "+(mode==="H"?"v-good":"v-bad");
+ v.textContent=mode==="H"?"Con app: el padre avisa al entrar (4-6 min antes) y el niño baja a la zona de carga mientras el carro recorre la fila. Carga de ~35 seg. La cola no llega a la calle."
+  :"Sin app: cada carro se detiene 2-3 min mientras buscan al niño. Ningún arreglo de carriles compensa esto: la cola se va a la calle Shalom y la avenida.";
+ document.getElementById("note").textContent=mode==="H"?"El pre-aviso es lo que rompe el cuello de botella; los 3 carriles aprovechan el tiempo ganado. Cero obra."
+  :"El problema no es el tráfico ni el espacio: es que el niño no está listo cuando llega el carro.";
+}
+document.getElementById("bH").onclick=function(){if(mode!=="H"){mode="H";reset();}};
+document.getElementById("bA").onclick=function(){if(mode!=="A"){mode="A";reset();}};
+document.getElementById("bR").onclick=reset;
+document.getElementById("bPause").onclick=function(){running=!running;this.innerHTML=running?"&#10073;&#10073; Pausa":"&#9658; Seguir";};
+document.getElementById("bSpeed").onclick=function(){si=(si+1)%3;this.innerHTML=(SPEEDS[si]===1?"Tiempo real (1×)":"Acelerado "+SPEEDS[si]+"×");};
+
+function stepSim(dt){t+=dt;if(t>=tNext){spawn();tNext=t+9;}   // 133 autos en ~20 min de pico ≈ 1 cada 9 s
+ cars.forEach(function(c){drive(c,dt);});enforceGap();enforceEntradaGap();enforceExitGap();layoutCola();promote();
+ cars=cars.filter(function(c){return c.state!=="done";});}
+var last=performance.now();
+function loop(now){var raw=Math.min((now-last)/1000,0.1);last=now;if(running)stepSim(raw*SPEEDS[si]);
+ var m=Math.floor(t/60),s=Math.floor(t%60);
+ document.getElementById("rT").textContent=m+":"+(s<10?"0":"")+s;
+ document.getElementById("rD").innerHTML=disp+' <small style="font-size:12px;font-weight:400;color:var(--ink2)">/ '+TOTAL+'</small>';
+ document.getElementById("rR").textContent=t>30?(disp/(t/60)).toFixed(1):"\u2014";
+ document.getElementById("rIn").textContent=cars.filter(function(c){return c.state!=="street"&&c.state!=="done";}).length;
+ var q=cars.filter(function(c){return c.state==="street";}).length;
+ var overflow = q>SHALOM_CAP;
+ document.getElementById("rQ").innerHTML=q+" <small>/ "+SHALOM_CAP+" carros</small>"+(overflow?' <small style="color:#a8352a;font-weight:700">¡llega a la avenida!</small>':"");
+ document.getElementById("rQ").style.color = overflow? "#a8352a" : "";
+ // aviso al terminar el despacho de los 133
+ if(disp>=TOTAL && !window.__fin){
+   window.__fin=true;
+   var mm=Math.floor(t/60), ss=Math.floor(t%60);
+   var v=document.getElementById("verdict");
+   v.innerHTML="<b>Despacho completo:</b> los "+TOTAL+" vehículos salieron en <b>"+mm+" min "+ss+" s</b>.";
+ }
+ phase();requestAnimationFrame(loop);}
+reset();requestAnimationFrame(loop);
+})();
+</script></body></html>
