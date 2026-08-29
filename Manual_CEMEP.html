@@ -1,0 +1,155 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEMEP · Recogida — Manual de uso</title><style>
+:root{--brand:#1f5c3d;--brand-soft:#e4efe6;--gold:#c98a2b;--gold-soft:#f6ecd9;--blue:#185fa5;--blue-soft:#e3edf7;--alert:#a8352a;--paper:#f4f2ea;--ink:#26251f;--ink2:#4a4a44;--ink3:#8a897f;--line:#d8d5c8}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink);margin:0;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding:26px 16px 50px}
+h1{font-size:22px;color:var(--brand);margin:0;text-align:center} h1 span{color:var(--gold)}
+.sub{color:var(--ink2);font-size:13px;margin:4px 0 22px;text-align:center}
+/* selector de manual */
+.selman{display:grid;gap:12px}
+.mcard{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;font-family:inherit;text-align:left;display:flex;gap:14px;align-items:center;transition:.15s}
+.mcard:hover{border-color:var(--brand);transform:translateY(-2px)}
+.mrole{flex:none;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:4px 12px;border-radius:12px}
+.mrole.p{background:var(--gold-soft);color:#8a5e12}.mrole.a{background:var(--blue-soft);color:var(--blue)}.mrole.g{background:var(--brand-soft);color:var(--brand)}
+.mcard b{display:block;font-size:15px}.mcard small{font-size:12px;color:var(--ink3)}
+/* vista de manual */
+.manual{display:none}
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mtitle{font-weight:800;font-size:15px}
+.mback{background:none;border:1px solid var(--line);border-radius:14px;padding:4px 12px;font-size:11px;color:var(--ink3);cursor:pointer;font-family:inherit}
+.prog{height:5px;background:#e6e3d8;border-radius:3px;margin:8px 0 16px;overflow:hidden}
+.progin{height:100%;background:var(--brand);width:0;transition:.3s}
+.paso{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;min-height:300px}
+.pnum{font-size:10.5px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em}
+.paso h2{font-size:17px;margin:4px 0 8px;color:var(--brand)}
+.paso p{font-size:13.5px;color:var(--ink2);margin:0 0 12px}
+.nav{display:flex;gap:10px;margin-top:14px}
+.nb{flex:1;padding:12px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+.nb.prev{background:#e9e6dc;color:var(--ink2)}.nb.next{background:var(--brand);color:#fff}
+.nb:disabled{opacity:.4;cursor:default}
+/* piezas de demo */
+.demo{background:#fafaf6;border:1.5px dashed #cfd4c9;border-radius:12px;padding:13px;margin-top:6px}
+.dlbl{font-size:10px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.dtxt{width:100%;padding:10px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;margin-bottom:8px}
+.dbtn{width:100%;padding:11px;border:none;border-radius:9px;background:var(--brand);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+.dbtn.blue{background:var(--blue)}
+.dok{margin-top:9px;font-size:13px;color:var(--brand);font-weight:700;display:none}
+.dhint{margin-top:8px;font-size:11.5px;color:var(--ink3)}
+.chips{display:flex;gap:8px}
+.chip{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;border:1.5px solid #bcd8c4;background:#fff;border-radius:10px;cursor:pointer;font-family:inherit}
+.chip.sel{background:var(--brand);border-color:var(--brand)}
+.chip .n{width:22px;height:22px;border-radius:50%;background:#eaf2ec;color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.chip.sel .n{background:#fff}
+.chip small{font-size:9px;color:var(--ink3)}.chip.sel small{color:#e4efe6}
+.cols10{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cc{width:26px;height:26px;border-radius:7px;border:2px solid #d8d8d0;cursor:pointer;padding:0}
+.cc.sel{border-color:var(--ink)}
+.item{display:flex;gap:9px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:8px}
+.badge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;flex:none}
+.imain{flex:1;min-width:0}.iname{font-weight:700;font-size:13px}.isub{font-size:11px;color:var(--ink3)}
+.act{border:1.5px solid var(--brand);background:#fff;color:var(--brand);border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.st{font-size:10px;font-weight:800;padding:3px 8px;border-radius:10px}
+.st.avisado{background:var(--gold-soft);color:#8a5e12}.st.camino{background:var(--blue-soft);color:var(--blue)}
+.dots{display:flex;gap:4px}.dot{width:8px;height:8px;border-radius:50%;background:#cfd8dd}.dot.on{background:var(--brand)}
+.mapa{background:#f7f6f0;border:1px solid var(--line);border-radius:11px;padding:10px;display:grid;grid-template-columns:22px 1fr 1fr 1fr 18px;gap:4px;margin-top:6px}
+.mc{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--blue)}
+.slot{height:24px;border:1px dashed #cfd0c4;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700}
+.slot.pend{opacity:.72;border-style:dashed}
+.bldg{grid-row:span 2;background:#e8e6df;border:1px solid #cfccc0;border-radius:5px;display:flex;align-items:center;justify-content:center}
+.bldg span{writing-mode:vertical-rl;font-size:7px;font-weight:700;color:#5f5e5a}
+.banner{display:none;background:#fdf3f2;border:1.5px solid var(--alert);color:#7a2620;border-radius:9px;padding:8px 11px;font-size:12px;margin-top:8px}
+.codebig{font-size:19px;font-weight:800;letter-spacing:.12em;color:var(--brand);background:var(--brand-soft);border-radius:8px;padding:5px 12px;display:inline-block;margin-top:6px}
+.fin{background:var(--brand-soft);border-radius:11px;padding:13px;font-size:13px;color:var(--brand);font-weight:600;margin-top:6px}
+input[type=range]{width:100%}
+</style></head><body><div class="wrap">
+<h1>CEMEP<span>·</span>Recogida</h1>
+<div class="sub" id="subt">Manual de uso · elige tu manual y practica cada paso</div>
+
+<div class="selman" id="selman">
+  <button class="mcard" onclick="abrir('padre')"><span class="mrole p">Padre</span><span><b>Manual para las familias</b><small>Verificarse, avisar, informar la ubicación y dar seguimiento</small></span></button>
+  <button class="mcard" onclick="abrir('aula')"><span class="mrole a">Aula</span><span><b>Manual para los maestros</b><small>Recibir avisos, preparar al niño y confirmar la salida</small></span></button>
+  <button class="mcard" onclick="abrir('puerta')"><span class="mrole g">Puerta</span><span><b>Manual para el personal de entrega</b><small>Leer el mapa, entregar en orden y usar la alerta</small></span></button>
+</div>
+
+<div class="manual" id="manual">
+  <div class="mhead"><div class="mtitle" id="mtitle"></div><button class="mback" onclick="volver()">‹ manuales</button></div>
+  <div class="prog"><div class="progin" id="progin"></div></div>
+  <div class="paso" id="paso"></div>
+  <div class="nav">
+    <button class="nb prev" id="bprev" onclick="mover(-1)">‹ Anterior</button>
+    <button class="nb next" id="bnext" onclick="mover(1)">Siguiente ›</button>
+  </div>
+</div>
+
+<script>
+function $(i){return document.getElementById(i);}
+// ---------- demos reutilizables ----------
+function dPin(inp){ var ok=/^[0-9]{4}$/.test(inp.value); var o=inp.parentNode.querySelector('.dok');
+  o.style.display=ok?'block':'none'; }
+function dSel(el){ var g=el.parentNode; g.querySelectorAll('.chip,.cc').forEach(function(x){x.classList.remove('sel');});
+  el.classList.add('sel'); chk(el); }
+function chk(el){ var d=el.closest('.demo'); if(!d) return;
+  var grupos=d.querySelectorAll('.chips,.cols10'); var listos=0;
+  grupos.forEach(function(g){ if(g.querySelector('.sel')) listos++; });
+  var o=d.querySelector('.dok'); if(o && listos===grupos.length) o.style.display='block'; }
+function dAvisa(b){ b.disabled=true; b.textContent='Aviso enviado ✓'; b.style.background='#8a8f8a';
+  var dots=b.closest('.demo').querySelectorAll('.dot'); var i=0;
+  var t=setInterval(function(){ if(i<dots.length){dots[i].classList.add('on');i++;} else clearInterval(t); },700);
+  var lbl=b.closest('.demo').querySelector('.dok'); setTimeout(function(){lbl.style.display='block';},2200); }
+function dSalio(b){ var it=b.closest('.item'); it.querySelector('.st').className='st camino';
+  it.querySelector('.st').textContent='en camino'; b.style.display='none';
+  b.closest('.demo').querySelector('.dok').style.display='block'; }
+function dEntrega(b){ var d=b.closest('.demo'); var it=b.closest('.item'); it.style.opacity=.35; b.disabled=true;
+  var seg=d.querySelector('[data-seg]'); if(seg){ seg.querySelector('.badge').textContent='1';
+    seg.querySelector('.isub').textContent='posición 1 (avanzó automáticamente)'; }
+  d.querySelector('.dok').style.display='block'; }
+function dAlerta(r){ var min=r.value; r.closest('.demo').querySelector('[data-min]').textContent=min+' min';
+  var b=r.closest('.demo').querySelector('.banner'); b.style.display= (min>=10)?'block':'none'; }
+function dAuth(b){ var AL='ABCDEFGHJKMNPQRSTUVWXYZ23456789'.replace('L',''); var c='';
+  for(var i=0;i<6;i++) c+=AL[Math.floor(Math.random()*AL.length)];
+  b.closest('.demo').querySelector('[data-code]').innerHTML='<span class="codebig">'+c+'</span>';
+  b.closest('.demo').querySelector('.dok').style.display='block'; }
+// ---------- contenido ----------
+var M={
+padre:{t:'Manual · Familias',p:[
+ {t:'Tu enlace de acceso',h:'<p>El colegio te entregó un <b>enlace</b> (o un código QR). Guárdalo en tu teléfono: es tu puerta de entrada. Al abrirlo verás la pantalla del padre.</p><p>Si abres la página sin el enlace, verás "Acceso restringido": ahí puedes escribir tu clave a mano.</p><div class="demo"><div class="dlbl">Bueno saber</div><p style="margin:0;font-size:12.5px">La clave nunca usa la letra O, el cero, la letra I ni el uno — no hay confusión posible al escribirla.</p></div>'},
+ {t:'Verifícate',h:'<p>Escribe el <b>apellido del estudiante</b> y tu <b>PIN de 4 dígitos</b>. Por privacidad, el nombre de tu hijo no aparece hasta que ambos coinciden.</p><div class="demo"><div class="dlbl">Practica aquí</div><input class="dtxt" value="Rodríguez" readonly><input class="dtxt" placeholder="Escribe 4 dígitos (ej. 1234)" maxlength="4" inputmode="numeric" oninput="dPin(this)"><div class="dok">✓ Listo — aparece: Sofía Rodríguez · 3° A</div></div>'},
+ {t:'Avisa que vas en camino',h:'<p>La ventana de avisos abre <b>20 minutos antes</b> de la salida (1:40 PM de lunes a jueves; 1:10 PM los viernes).</p><p><b>La regla de oro:</b> avisa <b>antes de doblar hacia la calle Shalom</b> — idealmente al salir del trabajo. Así tu hijo baja mientras tú llegas y la carga toma segundos.</p><div class="demo"><div class="dlbl">Practica aquí</div><button class="dbtn" onclick="dAvisa(this)">Avisar que voy en camino</button><div style="display:flex;align-items:center;gap:8px;margin-top:10px"><span style="font-size:12px;font-weight:700">Sofía</span><span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div><div class="dok">El aula ya lo sabe — están preparando a Sofía.</div></div>'},
+ {t:'Informa dónde estás',h:'<p>Al entrar al corredor, indica tu <b>carril</b>, tu <b>posición</b> (1 = la más adelantada) y el <b>color de tu vehículo</b>. El personal te ubica de un vistazo.</p><div class="demo"><div class="dlbl">Practica: toca una opción de cada fila</div><div class="chips"><button class="chip" onclick="dSel(this)"><span class="n">1</span><small>junto al edificio</small></button><button class="chip" onclick="dSel(this)"><span class="n">2</span><small>del medio</small></button><button class="chip" onclick="dSel(this)"><span class="n">3</span><small>exterior</small></button></div><div class="chips" style="margin-top:8px"><button class="chip" onclick="dSel(this)"><span class="n">1</span></button><button class="chip" onclick="dSel(this)"><span class="n">2</span></button><button class="chip" onclick="dSel(this)"><span class="n">3</span></button><button class="chip" onclick="dSel(this)"><span class="n">4</span></button></div><div class="cols10"><button class="cc" style="background:#fff" onclick="dSel(this)"></button><button class="cc" style="background:#9aa0a6" onclick="dSel(this)"></button><button class="cc" style="background:#2b2f33" onclick="dSel(this)"></button><button class="cc" style="background:#c0392b" onclick="dSel(this)"></button><button class="cc" style="background:#2465a8" onclick="dSel(this)"></button><button class="cc" style="background:#2d7a52" onclick="dSel(this)"></button></div><div class="dok">✓ Carril, posición y color informados al personal.</div></div>'},
+ {t:'Sigue el progreso',h:'<p>Tu panel de seguimiento muestra tres puntos por cada hijo: <b>Avisado → En camino → Entregado</b>.</p><p>Cuando el carro de adelante se va, <b>tu posición avanza sola</b> — no tienes que actualizar nada.</p><div class="demo"><div class="dlbl">Así se ve</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12.5px;font-weight:700">Sofía Rodríguez</span><span style="font-size:10.5px;color:var(--ink3)">carril 2 · posición 1</span><span class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></span><span style="font-size:11px;font-weight:700;color:var(--blue)">Va en camino</span></div></div>'},
+ {t:'¿Hoy lo recoge otra persona?',h:'<p>Genera un <b>código de un solo uso</b> para quien recoja hoy (la tía, el abuelo). Se usa con tu apellido, vale <b>solo hoy</b> y <b>una sola vez</b>.</p><div class="demo"><div class="dlbl">Practica aquí</div><input class="dtxt" placeholder="Nombre de quien recoge (opcional)"><button class="dbtn blue" onclick="dAuth(this)">Generar código de un solo uso</button><div data-code></div><div class="dok">Compártelo por un canal directo. Al usarse, muere.</div></div><div class="fin" style="margin-top:12px">✔ Listo. Ya puedes usar tu pantalla real con el enlace del colegio.</div>'}
+]},
+aula:{t:'Manual · Maestros',p:[
+ {t:'Tu pantalla del aula',h:'<p>Abre el <b>enlace del aula</b> que te entregó el colegio (es del personal: no lo compartas con familias). Selecciona <b>tu aula</b> en la lista — solo verás a tus propios estudiantes.</p><div class="demo"><div class="dlbl">Bueno saber</div><p style="margin:0;font-size:12.5px">La ventana de avisos abre 20 minutos antes de la salida, así que los avisos llegan escalonados, no todos de golpe.</p></div>'},
+ {t:'Llega un aviso',h:'<p>Cuando una familia avisa, el estudiante aparece con quién lo recoge y, si ya informó, el carril donde espera.</p><div class="demo"><div class="dlbl">Así se ve</div><div class="item"><span class="badge" style="background:var(--blue)">3A</span><div class="imain"><div class="iname">Sofía Rodríguez</div><div class="isub">Recoge: Ana (mamá) · carril 2 · avisó 1:45 PM</div></div><span class="st avisado">avisado</span></div></div><p style="margin-top:10px">Prepara al estudiante: que recoja sus cosas y baje a la zona de carga.</p>'},
+ {t:'Confirma la salida',h:'<p>Cuando el estudiante <b>sale del aula</b>, toca "salió →". En ese momento la puerta lo ve venir. Confirma solo cuando realmente salga — de eso depende el orden en la entrega.</p><div class="demo"><div class="dlbl">Practica aquí</div><div class="item"><span class="badge" style="background:var(--blue)">3A</span><div class="imain"><div class="iname">Sofía Rodríguez</div><div class="isub">Recoge: Ana (mamá) · carril 2</div></div><span class="st avisado">avisado</span><button class="act" onclick="dSalio(this)">salió →</button></div><div class="dok">✓ La puerta ya la ve en camino.</div></div>'},
+ {t:'Personas autorizadas',h:'<p>Si hoy recoge alguien distinto, la familia genera un código de un solo uso. En tu pantalla lo verás identificado:</p><div class="demo"><div class="dlbl">Así se ve</div><div class="item"><span class="badge" style="background:var(--blue)">3A</span><div class="imain"><div class="iname">Sofía Rodríguez</div><div class="isub">Recoge: <b>Tía Ana (autorizado)</b> · carril 1</div></div><span class="st avisado">avisado</span></div></div><p style="margin-top:10px">El código vence el mismo día y solo funciona una vez — si algo no cuadra, consulta a coordinación antes de confirmar.</p><div class="fin" style="margin-top:12px">✔ Eso es todo: recibir, preparar, confirmar.</div>'}
+]},
+puerta:{t:'Manual · Personal de entrega',p:[
+ {t:'Tu pantalla de la puerta',h:'<p>Abre el <b>enlace de la puerta</b> (solo del personal). Verás dos cosas: el <b>mapa del corredor</b> arriba y la <b>lista de entrega</b> abajo.</p><p>El mapa está orientado como lo ves parado en la puerta: el <b>edificio a la derecha</b>, el carril 1 pegado a él, los vehículos <b>entran por abajo</b> y avanzan hacia la salida.</p>'},
+ {t:'Lee el mapa',h:'<p>Cada casilla es un vehículo con su <b>color real</b>. Borde <b>punteado</b> = el carro llegó pero el niño sigue en el aula ("esperando"). Casilla <b>sólida</b> = el niño ya viene en camino.</p><div class="demo"><div class="dlbl">Así se ve</div><div class="mapa"><div class="mc"></div><div class="mc">3</div><div class="mc">2</div><div class="mc">1</div><div class="mc"></div><div class="mc">1</div><div class="slot"></div><div class="slot" style="background:#c0392b;color:#fff;border-style:solid">Sofía</div><div class="slot"></div><div class="bldg"><span>EDIFICIO</span></div><div class="mc">2</div><div class="slot pend" style="background:#2465a8;color:#fff">Mateo</div><div class="slot"></div><div class="slot"></div></div><p style="margin-top:8px;font-size:12px">Sofía (rojo, carril 2, pos. 1) ya viene; Mateo (azul, punteado) espera a su niño.</p></div>'},
+ {t:'Entrega en orden',h:'<p>La lista agrupa por carril. Cada niño trae su posición, el color, cuántos van en el mismo vehículo y los <b>minutos de espera</b> (rojo a partir de 5).</p><p>Al tocar "entregado", el que sigue en ese carril <b>avanza de posición automáticamente</b>.</p><div class="demo"><div class="dlbl">Practica: entrega a Sofía</div><div class="item"><span class="badge" style="background:#c0392b">1</span><div class="imain"><div class="iname">Sofía Rodríguez <span style="font-weight:400;color:var(--ink3)">· 3° A</span></div><div class="isub">Ana (mamá) · posición 1 · rojo</div></div><button class="act" onclick="dEntrega(this)">entregado</button></div><div class="item" data-seg><span class="badge" style="background:#2465a8">2</span><div class="imain"><div class="iname">Mateo Jiménez <span style="font-weight:400;color:var(--ink3)">· 5° B</span></div><div class="isub">posición 2</div></div></div><div class="dok">✓ Mateo avanzó a la posición 1 — sin que nadie toque nada.</div></div>'},
+ {t:'La alerta de retraso',h:'<p>Si un niño lleva <b>10 minutos o más</b> en camino sin ser entregado, aparece un aviso rojo con su nombre: es la señal para <b>avisar a coordinación</b>.</p><div class="demo"><div class="dlbl">Practica: mueve los minutos de espera</div><input type="range" min="0" max="15" value="3" oninput="dAlerta(this)"><div style="font-size:12px;color:var(--ink3);margin-top:4px">Espera: <b data-min>3 min</b></div><div class="banner">⚠ <b>1</b> esperando más de 10 minutos (Sofía) — avisar a coordinación.</div></div>'},
+ {t:'El registro del día',h:'<p>Abajo, "Retiros de hoy" guarda cada entrega: hora, quién retiró, carril, posición y color. Sirve para cualquier consulta posterior.</p><div class="demo"><div class="dlbl">Así se ve</div><div style="font-size:12px;color:var(--ink2)"><b>1:52 PM</b> — Sofía Rodríguez · 3° A — retirada por Ana (mamá) <span style="color:var(--ink3)">(carril 2, posición 1, rojo)</span></div></div><div class="fin" style="margin-top:12px">✔ Mapa, orden, alerta y registro: con eso dominas la puerta.</div>'}
+]}};
+// ---------- navegación ----------
+var rol=null, idx=0;
+function abrir(r){ rol=r; idx=0; $('selman').style.display='none'; $('manual').style.display='block';
+  $('mtitle').textContent=M[r].t; $('subt').textContent='Practica cada paso antes de usar la pantalla real';
+  try{history.replaceState(null,'','#'+r);}catch(e){} render(); }
+function volver(){ $('manual').style.display='none'; $('selman').style.display='grid';
+  $('subt').textContent='Manual de uso · elige tu manual y practica cada paso';
+  try{history.replaceState(null,'','#');}catch(e){} }
+function render(){ var ps=M[rol].p, p=ps[idx];
+  $('paso').innerHTML='<div class="pnum">Paso '+(idx+1)+' de '+ps.length+'</div><h2>'+p.t+'</h2>'+p.h;
+  $('progin').style.width=(100*(idx+1)/ps.length)+'%';
+  $('bprev').disabled=(idx===0);
+  $('bnext').textContent=(idx===ps.length-1)?'Terminar ✓':'Siguiente ›'; }
+function mover(d){ var n=M[rol].p.length;
+  if(d>0 && idx===n-1){ volver(); return; }
+  idx=Math.max(0,Math.min(n-1,idx+d)); render(); }
+(function(){ var h=(location.hash||'').replace('#','');
+  if(M[h]) abrir(h); })();
+</script>
+</div></body></html>
