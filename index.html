@@ -196,6 +196,27 @@
   .col.sel::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;font-size:14px;font-weight:900}
   .col.sel.claro::after{color:#1c2b24} .col.sel.oscuro::after{color:#fff}
+  .tgl{background:#fff;border:1px solid var(--line);border-radius:12px;padding:2px 9px;font-size:10.5px;color:var(--ink2);cursor:pointer;font-family:inherit;margin-right:8px}
+  .tgl.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  @media(max-width:480px){
+    .trow{flex-wrap:wrap;row-gap:4px} .trow .tname{flex:1 1 100%}
+    .item{flex-wrap:wrap;row-gap:6px} .item .imain{flex:1 1 60%} .item .act{margin-left:auto}
+    .count{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  }
+  /* modo exterior: letra grande y alto contraste para la puerta al aire libre */
+  body.exterior{--paper:#ffffff;--ink:#000;--ink2:#151515;--ink3:#3a3a3a;--line:#8a8a8a}
+  body.exterior .cmgrid .cmslot{height:42px} body.exterior .cmname{font-size:12.5px} body.exterior .cmsub{font-size:10px}
+  body.exterior .cmhdr,body.exterior .cmposlbl{font-size:15px} body.exterior .cmhdr span{font-size:9px}
+  body.exterior .iname{font-size:18px} body.exterior .isub{font-size:14px}
+  body.exterior .badge{width:38px;height:38px;font-size:17px} body.exterior .wait{font-size:15px}
+  body.exterior .act{font-size:15px;padding:10px 16px} body.exterior .lanegroup{font-size:13.5px}
+  body.exterior .latealert{font-size:16px;padding:12px} body.exterior .hrow{font-size:13.5px}
+  body.exterior .cmgrid{grid-template-columns:34px 1fr 1fr 1fr 26px}
+  .cmslot{overflow:hidden;padding:2px 3px;line-height:1.1}
+  @media(max-width:480px){
+    body.exterior .cmgrid .cmslot{height:48px} body.exterior .cmname{font-size:10.5px} body.exterior .cmsub{font-size:8.5px}
+    body.exterior .cmgrid{grid-template-columns:28px 1fr 1fr 1fr 22px}
+  }
   .lanehint{font-size:10.5px;color:var(--ink3);margin-top:6px;line-height:1.35}
   .lanebadge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
     border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:800;flex:none}
@@ -363,7 +384,7 @@
     <!-- ===== AULA ===== -->
     <section class="panel" data-panel="aula">
       <div class="phead"><span class="role aula">Aula</span><h2>Avisos del maestro</h2>
-        <span class="count">pendientes <b id="aulacount">0</b></span></div>
+        <span class="count"><button class="tgl" id="sndbtn" title="Sonido al llegar un aviso">🔔 sonido: no</button> pendientes <b id="aulacount">0</b></span></div>
       <div class="pbody">
         <div class="aulapick">
           <label class="fld" for="aulasel">Estás viendo el aula</label>
@@ -377,7 +398,7 @@
     <!-- ===== PUERTA ===== -->
     <section class="panel" data-panel="puerta">
       <div class="phead"><span class="role puerta">Puerta</span><h2>Entrega en la zona de carga</h2>
-        <span class="count">en camino <b id="puertacount">0</b></span></div>
+        <span class="count"><button class="tgl" id="extbtn" title="Letra grande y alto contraste">☀ exterior</button> en camino <b id="puertacount">0</b></span></div>
       <div class="pbody">
         <div class="corrmap" id="corrmap"></div>
         <ul class="list" id="puertalist"></ul>
@@ -472,7 +493,7 @@ setInterval(tick,1000);
 
 // poblar selector de aula
 (function(){var sel=$("aulasel");AULAS.forEach(function(a){var o=document.createElement("option");o.value=a;o.textContent=a;sel.appendChild(o);});
-  sel.addEventListener("change",renderAula);})();
+  sel.addEventListener("change",function(){idsAulaPrev=null;renderAula();checkNuevosAvisos();});})();
 
 // ---------- PADRE: verificar ----------
 $("reveal").addEventListener("click",function(){
@@ -713,7 +734,39 @@ function renderHist(){
    h.appendChild(d);
  });
 }
-function renderAll(){renderAula();renderPuerta();renderTrack();renderHist();}
+// ---- sonido en el aula ----
+var sonido=false, actx=null, idsAulaPrev=null; window.__beeps=0;
+function beep(){ window.__beeps++; if(!actx) return;
+  try{ [0,0.22].forEach(function(t0){ var o=actx.createOscillator(), g=actx.createGain();
+    o.frequency.value=880; o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(0.0001,actx.currentTime+t0); g.gain.exponentialRampToValueAtTime(0.25,actx.currentTime+t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+t0+0.16); o.start(actx.currentTime+t0); o.stop(actx.currentTime+t0+0.18); }); }catch(e){}
+}
+(function(){ var b=$("sndbtn"); if(!b) return;
+  try{ sonido=localStorage.getItem("cemep_sonido")==="1"; }catch(e){}
+  function pinta(){ b.textContent="🔔 sonido: "+(sonido?"sí":"no"); b.classList.toggle("on",sonido); }
+  b.addEventListener("click",function(){ sonido=!sonido;
+    if(sonido && !actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(sonido && actx && actx.state==="suspended") actx.resume();
+    try{ localStorage.setItem("cemep_sonido",sonido?"1":"0"); }catch(e){}
+    pinta(); if(sonido) beep(); });
+  pinta(); })();
+function checkNuevosAvisos(){
+  var aula=$("aulasel").value;
+  var ids=records.filter(function(r){return r.state==="avisado" && r.aula===aula;}).map(function(r){return r.id;});
+  if(idsAulaPrev!==null){
+    var nuevos=ids.filter(function(i){return idsAulaPrev.indexOf(i)<0;});
+    if(nuevos.length && sonido && (ROLE==="aula"||ROLE==="todo")) beep();
+  }
+  idsAulaPrev=ids;
+}
+// ---- modo exterior (puerta) ----
+(function(){ var b=$("extbtn"); if(!b) return;
+  var on=false; try{ on=localStorage.getItem("cemep_exterior")==="1"; }catch(e){}
+  function aplica(){ document.body.classList.toggle("exterior",on); b.classList.toggle("on",on); }
+  b.addEventListener("click",function(){ on=!on; try{ localStorage.setItem("cemep_exterior",on?"1":"0"); }catch(e){} aplica(); });
+  aplica(); })();
+function renderAll(){renderAula();renderPuerta();renderTrack();renderHist();checkNuevosAvisos();}
 
 $("simnow").addEventListener("click",function(){
   simulatedPeak=!simulatedPeak;
