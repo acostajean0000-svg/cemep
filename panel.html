@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi panel — RankeaPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23020604'/%3E%3Ctext x='8' y='46' font-family='monospace' font-size='38' font-weight='700' fill='%2300ff7f'%3E%3E_%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body class="app">
+<div class="wrap app">
+<nav>
+  <div class="container">
+    <a class="logo" href="index.html">&gt;_ <b>rankea</b>pro<span class="cur"></span></a>
+    <div class="navcta">
+      <a class="btn btn-ghost" id="admin-link" href="admin.html" hidden>admin</a>
+      <button class="btn btn-ghost" onclick="logout()">salir</button>
+    </div>
+  </div>
+</nav>
+<main>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <span class="cmd" style="margin-bottom:4px">whoami</span>
+        <div class="who">sesión: <b id="who">…</b></div>
+      </div>
+      <form class="search" id="f-claim" style="max-width:420px;flex:1">
+        <span class="prompt">vincular&gt;</span>
+        <input id="claim-code" type="text" placeholder="código de orden" autocomplete="off">
+        <button class="btn btn-primary" type="submit">add</button>
+      </form>
+    </div>
+    <div class="msg" id="msg" style="margin:0 0 16px"></div>
+
+    <div id="view-list">
+      <span class="cmd">ls ./mis-ordenes</span>
+      <h2>Mis órdenes</h2>
+      <p class="lead">Selecciona una orden para ver su progreso, gráficas y reportes con evidencias.</p>
+      <div id="olist" class="olist"><div class="loading">cargando</div></div>
+    </div>
+
+    <div id="view-detail" hidden>
+      <span class="back" onclick="showList()">volver a mis órdenes</span>
+      <div id="detail"></div>
+      <div class="reports">
+        <span class="cmd">cat ./reportes/*.md</span>
+        <h2>Reportes</h2>
+        <div id="reports"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer><div class="container"><div>© RankeaPro</div><div>¿dudas? escríbenos por WhatsApp</div></div></footer>
+</div>
+<script src="app.js"></script>
+<script>
+let user, orders = [], charts = [];
+const msg = $('#msg');
+
+(async () => {
+  user = await requireUser(); if(!user) return;
+  const prof = await getProfile(user.id);
+  $('#who').textContent = (prof?.nombre ? prof.nombre + ' <' + user.email + '>' : user.email);
+  if(prof?.role === 'admin') $('#admin-link').hidden = false;
+  await loadOrders();
+  const q = new URLSearchParams(location.search).get('orden');
+  if(q){
+    const found = orders.find(o => o.codigo.toUpperCase() === q.toUpperCase());
+    if(found) openOrder(found.id); else { $('#claim-code').value = q; claim(); }
+  }
+})();
+
+async function loadOrders(){
+  const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending:false });
+  if(error) return showMsg(msg, error.message);
+  orders = data || [];
+  const list = $('#olist');
+  if(!orders.length){ list.innerHTML = `<div class="empty" style="grid-column:1/-1">No tienes órdenes vinculadas. Escribe arriba el código que te enviamos (ej. RP-2409-001).</div>`; return; }
+  list.innerHTML = orders.map(o => `
+    <div class="ocard" onclick="openOrder('${o.id}')">
+      <div class="code">${esc(o.codigo)}</div>
+      <h3>${esc(o.servicio)}</h3>
+      <p>${esc(o.plataforma||'')}</p>
+      <div class="progress"><i style="width:${o.progreso}%"></i></div>
+      <div class="row"><span class="badge b-${esc(o.estado)}">${ESTADOS[o.estado]||o.estado}</span><span>${o.progreso}% · entrega ${fdate(o.entrega)}</span></div>
+    </div>`).join('');
+}
+
+async function openOrder(id){
+  const o = orders.find(x => x.id === id); if(!o) return;
+  charts.forEach(c => c.destroy()); charts = [];
+  $('#view-list').hidden = true; $('#view-detail').hidden = false;
+  $('#detail').innerHTML = orderDetailHTML(o);
+  requestAnimationFrame(() => { $('#detail .bar').style.width = o.progreso + '%'; });
+  charts = renderOrderCharts(o, 'c-hist', 'c-src');
+  $('#reports').innerHTML = '<div class="loading">cargando reportes</div>';
+  const { data, error } = await sb.from('reports').select('*').eq('order_id', id).order('fecha', { ascending:false });
+  $('#reports').innerHTML = error ? `<div class="msg show err">${esc(error.message)}</div>` : reportsHTML(data || []);
+  history.replaceState(null, '', '?orden=' + encodeURIComponent(o.codigo));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function showList(){ $('#view-detail').hidden = true; $('#view-list').hidden = false; history.replaceState(null, '', 'panel.html'); }
+
+$('#f-claim').onsubmit = e => { e.preventDefault(); claim(); };
+async function claim(){
+  hideMsg(msg);
+  const code = $('#claim-code').value.trim().toUpperCase(); if(!code) return;
+  const { data, error } = await sb.rpc('claim_order', { p_codigo: code });
+  if(error) return showMsg(msg, error.message);
+  if(!data.ok) return showMsg(msg, data.error);
+  showMsg(msg, `Orden ${data.codigo} vinculada: ${data.servicio}`, 'ok');
+  $('#claim-code').value = '';
+  await loadOrders();
+  const o = orders.find(x => x.codigo === data.codigo); if(o) openOrder(o.id);
+}
+</script>
+</body>
+</html>

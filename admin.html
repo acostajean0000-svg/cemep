@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — RankeaPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23020604'/%3E%3Ctext x='8' y='46' font-family='monospace' font-size='38' font-weight='700' fill='%2300ff7f'%3E%3E_%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body class="app">
+<div class="wrap app">
+<nav>
+  <div class="container">
+    <a class="logo" href="index.html">&gt;_ <b>rankea</b>pro <span style="color:var(--warn);font-size:.7rem;letter-spacing:.2em">ADMIN</span></a>
+    <div class="navcta">
+      <a class="btn btn-ghost" href="panel.html">panel cliente</a>
+      <button class="btn btn-ghost" onclick="logout()">salir</button>
+    </div>
+  </div>
+</nav>
+<main>
+  <div class="container">
+    <div class="topbar">
+      <div><span class="cmd" style="margin-bottom:4px">sudo su</span><div class="who">admin: <b id="who">…</b></div></div>
+      <button class="btn btn-primary" onclick="editOrder()">+ nueva orden</button>
+    </div>
+    <div class="msg" id="msg" style="margin:0 0 16px"></div>
+
+    <div class="admin-tabs">
+      <button class="active" data-tab="ordenes">Órdenes</button>
+      <button data-tab="reportes">Reportes</button>
+      <button data-tab="clientes">Clientes</button>
+    </div>
+
+    <!-- ÓRDENES -->
+    <div id="tab-ordenes">
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>código</th><th>cliente</th><th>servicio</th><th>estado</th><th>progreso</th><th>actual / meta</th><th>dueño</th><th></th></tr></thead><tbody id="orders-body"><tr><td colspan="8" class="loading">cargando</td></tr></tbody></table></div>
+    </div>
+
+    <!-- REPORTES -->
+    <div id="tab-reportes" hidden>
+      <div class="grid2">
+        <div class="panel" style="border-top:1px solid var(--line2)">
+          <h3 style="color:#fff;margin-bottom:14px"># Publicar reporte</h3>
+          <form id="f-report">
+            <div class="field"><label>orden</label><select name="order_id" id="rep-order" required></select></div>
+            <div class="field"><label>título</label><input name="titulo" required placeholder="Reporte semanal #3"></div>
+            <div class="field"><label>fecha</label><input name="fecha" type="date" required></div>
+            <div class="field"><label>contenido</label><textarea name="contenido" placeholder="Resumen de avances, métricas, próximos pasos…"></textarea></div>
+            <div class="field"><label>evidencias (capturas, PDF)</label><input name="files" type="file" multiple accept="image/*,.pdf"></div>
+            <button class="btn btn-primary full" type="submit">publicar</button>
+          </form>
+        </div>
+        <div>
+          <h3 style="color:#fff;margin-bottom:14px"># Reportes publicados</h3>
+          <div class="field"><label>filtrar por orden</label><select id="rep-filter"><option value="">todas</option></select></div>
+          <div id="rep-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div id="tab-clientes" hidden>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>correo</th><th>nombre</th><th>empresa</th><th>rol</th><th>órdenes</th><th>registrado</th></tr></thead><tbody id="users-body"><tr><td colspan="6" class="loading">cargando</td></tr></tbody></table></div>
+      <p class="hint" style="text-align:left;margin-top:14px">Para asignar una orden a un cliente: edita la orden y escribe su correo en "dueño".</p>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- MODAL ORDEN -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="m-title">Nueva orden</h3>
+    <form id="f-order">
+      <input type="hidden" name="id">
+      <div class="grid2">
+        <div class="field"><label>código *</label><input name="codigo" required placeholder="RP-2409-001" style="text-transform:uppercase"></div>
+        <div class="field"><label>dueño (correo del cliente)</label><input name="owner_email" type="email" placeholder="cliente@correo.com"></div>
+        <div class="field"><label>cliente / marca</label><input name="cliente"></div>
+        <div class="field"><label>plataforma</label><input name="plataforma" placeholder="Instagram, Sitio web, Google Maps…"></div>
+      </div>
+      <div class="field"><label>servicio *</label><input name="servicio" required placeholder="Crecimiento Instagram — 10,000 seguidores"></div>
+      <div class="grid2">
+        <div class="field"><label>inicio</label><input name="inicio" type="date"></div>
+        <div class="field"><label>entrega estimada</label><input name="entrega" type="date"></div>
+        <div class="field"><label>estado</label><select name="estado"><option value="en_proceso">En proceso</option><option value="completada">Completada</option><option value="pausada">Pausada</option></select></div>
+        <div class="field"><label>progreso (0-100)</label><input name="progreso" type="number" min="0" max="100" value="0"></div>
+        <div class="field"><label>meta</label><input name="meta" type="number" step="any"></div>
+        <div class="field"><label>actual</label><input name="actual" type="number" step="any" value="0"></div>
+        <div class="field"><label>unidad</label><input name="unidad" value="visitas" placeholder="visitas, seguidores, posición…"></div>
+        <div class="field"><label>menor es mejor (ranking)</label><select name="invertido"><option value="false">No</option><option value="true">Sí (posición en Google)</option></select></div>
+      </div>
+      <div class="field"><label>fuentes (nombre: porcentaje, una por línea)</label><textarea name="fuentes" placeholder="Google orgánico: 46&#10;Redes sociales: 31&#10;Referidos: 23" style="min-height:80px"></textarea></div>
+      <div class="field"><label>historial (fecha → valor)</label>
+        <div id="hist"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addHist()">+ punto</button>
+      </div>
+      <div class="field"><label>notas visibles para el cliente</label><textarea name="notas" style="min-height:70px"></textarea></div>
+      <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">
+        <button type="button" class="btn btn-danger btn-sm" id="btn-del" onclick="deleteOrder()" hidden>eliminar orden</button>
+        <div style="display:flex;gap:10px;margin-left:auto">
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">cancelar</button>
+          <button class="btn btn-primary" type="submit">guardar</button>
+        </div>
+      </div>
+      <div class="msg" id="m-msg"></div>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+let user, orders = [], users = [];
+const msg = $('#msg');
+
+(async () => {
+  user = await requireUser(); if(!user) return;
+  const prof = await getProfile(user.id);
+  if(prof?.role !== 'admin'){
+    document.querySelector('main .container').innerHTML = `<div class="msg show err">Tu cuenta no es administradora. Ejecuta en Supabase: <code>update profiles set role='admin' where email='${esc(user.email)}';</code></div>`;
+    return;
+  }
+  $('#who').textContent = user.email;
+  $('#f-report [name=fecha]').value = new Date().toISOString().slice(0,10);
+  await loadUsers(); await loadOrders(); await loadUsers();
+  loadReports();
+})();
+
+$$('.admin-tabs button').forEach(b => b.onclick = () => {
+  $$('.admin-tabs button').forEach(x => x.classList.toggle('active', x === b));
+  ['ordenes','reportes','clientes'].forEach(t => $('#tab-'+t).hidden = t !== b.dataset.tab);
+});
+
+/* ---------- ÓRDENES ---------- */
+async function loadOrders(){
+  const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending:false });
+  if(error) return showMsg(msg, error.message);
+  orders = data || [];
+  $('#orders-body').innerHTML = orders.length ? orders.map(o => `
+    <tr>
+      <td style="color:var(--accent)">${esc(o.codigo)}</td>
+      <td>${esc(o.cliente||'')}</td>
+      <td>${esc(o.servicio)}</td>
+      <td><span class="badge b-${esc(o.estado)}" style="font-size:.62rem">${ESTADOS[o.estado]}</span></td>
+      <td><div class="progress" style="width:90px;height:8px;margin:4px 0"><i style="width:${o.progreso}%"></i></div>${o.progreso}%</td>
+      <td>${o.invertido ? '#'+o.actual+' / top '+o.meta : fmt(o.actual)+' / '+fmt(o.meta)+' '+esc(o.unidad||'')}</td>
+      <td>${ownerLabel(o.owner)}</td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editOrder('${o.id}')">editar</button> <a class="btn btn-ghost btn-sm" href="panel.html?orden=${encodeURIComponent(o.codigo)}" target="_blank">ver</a></td>
+    </tr>`).join('') : `<tr><td colspan="8" class="empty">Sin órdenes. Crea la primera con "+ nueva orden".</td></tr>`;
+  const opts = orders.map(o => `<option value="${o.id}">${esc(o.codigo)} — ${esc(o.servicio)}</option>`).join('');
+  $('#rep-order').innerHTML = opts;
+  $('#rep-filter').innerHTML = '<option value="">todas</option>' + opts;
+}
+function ownerLabel(id){ const u = users.find(x => x.id === id); return u ? esc(u.email) : (id ? '<span style="color:var(--muted)">(usuario)</span>' : '<span class="pill" style="color:var(--warn);border-color:var(--warn)">sin vincular</span>'); }
+
+function addHist(d='', v=''){
+  const row = document.createElement('div'); row.className = 'hist-row';
+  row.innerHTML = `<input type="date" value="${d}"><input type="number" step="any" placeholder="valor" value="${v}"><button type="button" class="btn btn-danger btn-sm" onclick="this.parentNode.remove()">x</button>`;
+  $('#hist').appendChild(row);
+}
+function editOrder(id){
+  const f = $('#f-order'); f.reset(); hideMsg($('#m-msg')); $('#hist').innerHTML = '';
+  const o = orders.find(x => x.id === id);
+  $('#m-title').textContent = o ? 'Editar orden ' + o.codigo : 'Nueva orden';
+  $('#btn-del').hidden = !o;
+  if(o){
+    ['id','codigo','cliente','plataforma','servicio','inicio','entrega','estado','progreso','meta','actual','unidad','notas'].forEach(k => f[k].value = o[k] ?? '');
+    f.invertido.value = String(!!o.invertido);
+    f.owner_email.value = (users.find(u => u.id === o.owner)||{}).email || '';
+    f.fuentes.value = Object.entries(o.fuentes||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+    (o.historial||[]).forEach(h => addHist(h[0], h[1]));
+  } else { addHist(new Date().toISOString().slice(0,10), 0); }
+  $('#overlay').classList.add('show');
+}
+function closeModal(){ $('#overlay').classList.remove('show'); }
+$('#overlay').onclick = e => { if(e.target === e.currentTarget) closeModal(); };
+
+$('#f-order').onsubmit = async e => {
+  e.preventDefault(); const mm = $('#m-msg'); hideMsg(mm);
+  const f = e.target;
+  let owner = null;
+  if(f.owner_email.value.trim()){
+    const u = users.find(x => (x.email||'').toLowerCase() === f.owner_email.value.trim().toLowerCase());
+    if(!u) return showMsg(mm, 'No existe un cliente registrado con ese correo. Pídele que cree su cuenta primero, o deja el campo vacío y dale el código.');
+    owner = u.id;
+  }
+  const fuentes = {}; f.fuentes.value.split('\n').forEach(l => { const m = l.match(/^\s*(.+?)\s*:\s*([\d.]+)\s*$/); if(m) fuentes[m[1]] = Number(m[2]); });
+  const historial = $$('#hist .hist-row').map(r => [r.children[0].value, Number(r.children[1].value)]).filter(h => h[0]).sort((a,b) => a[0].localeCompare(b[0]));
+  const row = {
+    codigo: f.codigo.value.trim().toUpperCase(), owner, cliente: f.cliente.value, plataforma: f.plataforma.value, servicio: f.servicio.value,
+    inicio: f.inicio.value || null, entrega: f.entrega.value || null, estado: f.estado.value, progreso: Number(f.progreso.value)||0,
+    meta: f.meta.value === '' ? null : Number(f.meta.value), actual: Number(f.actual.value)||0, unidad: f.unidad.value, invertido: f.invertido.value === 'true',
+    fuentes, historial, notas: f.notas.value, updated_at: new Date().toISOString()
+  };
+  const q = f.id.value ? sb.from('orders').update(row).eq('id', f.id.value) : sb.from('orders').insert(row);
+  const { error } = await q;
+  if(error) return showMsg(mm, error.code === '23505' ? 'Ya existe una orden con ese código.' : error.message);
+  closeModal(); showMsg(msg, 'Orden guardada: ' + row.codigo, 'ok'); loadOrders();
+};
+async function deleteOrder(){
+  const id = $('#f-order').id.value; if(!id) return;
+  if(!window.confirm('¿Eliminar esta orden y todos sus reportes? Esta acción no se puede deshacer.')) return;
+  const { error } = await sb.from('orders').delete().eq('id', id);
+  if(error) return showMsg($('#m-msg'), error.message);
+  closeModal(); showMsg(msg, 'Orden eliminada.', 'ok'); loadOrders(); loadReports();
+}
+
+/* ---------- REPORTES ---------- */
+$('#f-report').onsubmit = async e => {
+  e.preventDefault(); hideMsg(msg);
+  const f = e.target; const btn = f.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'subiendo…';
+  try{
+    const evidencias = [];
+    for(const file of f.files.files){
+      const path = `${f.order_id.value}/${Date.now()}-${file.name.replace(/[^\w.\-]/g,'_')}`;
+      const { error } = await sb.storage.from('evidencias').upload(path, file, { upsert:false });
+      if(error) throw error;
+      const { data } = sb.storage.from('evidencias').getPublicUrl(path);
+      evidencias.push({ url: data.publicUrl, nombre: file.name });
+    }
+    const { error } = await sb.from('reports').insert({ order_id: f.order_id.value, titulo: f.titulo.value, fecha: f.fecha.value, contenido: f.contenido.value, evidencias });
+    if(error) throw error;
+    showMsg(msg, 'Reporte publicado.', 'ok'); f.titulo.value = ''; f.contenido.value = ''; f.files.value = ''; loadReports();
+  }catch(err){ showMsg(msg, err.message); }
+  btn.disabled = false; btn.textContent = 'publicar';
+};
+$('#rep-filter').onchange = loadReports;
+async function loadReports(){
+  let q = sb.from('reports').select('*, orders(codigo)').order('fecha', { ascending:false }).limit(100);
+  if($('#rep-filter').value) q = q.eq('order_id', $('#rep-filter').value);
+  const { data, error } = await q;
+  if(error) return showMsg(msg, error.message);
+  $('#rep-list').innerHTML = (data||[]).length ? data.map(r => `
+    <div class="report">
+      <h4>${esc(r.titulo)} <span>${esc(r.orders?.codigo||'')} · ${fdate(r.fecha)} <button class="btn btn-danger btn-sm" onclick="deleteReport('${r.id}')">borrar</button></span></h4>
+      ${r.contenido ? `<p>${esc(r.contenido)}</p>` : ''}
+      ${(r.evidencias||[]).length ? `<div class="evid">${r.evidencias.map(e => `<a href="${esc(e.url)}" target="_blank">${/\.(png|jpe?g|gif|webp)(\?|$)/i.test(e.url) ? `<img src="${esc(e.url)}">` : `<span class="file">${esc(e.nombre)}</span>`}</a>`).join('')}</div>` : ''}
+    </div>`).join('') : '<div class="empty">Sin reportes.</div>';
+}
+async function deleteReport(id){
+  if(!window.confirm('¿Borrar este reporte?')) return;
+  const { error } = await sb.from('reports').delete().eq('id', id);
+  if(error) return showMsg(msg, error.message);
+  loadReports();
+}
+
+/* ---------- CLIENTES ---------- */
+async function loadUsers(){
+  const { data, error } = await sb.from('profiles').select('*').order('created_at', { ascending:false });
+  if(error) return showMsg(msg, error.message);
+  users = data || [];
+  $('#users-body').innerHTML = users.length ? users.map(u => `
+    <tr><td style="color:var(--accent)">${esc(u.email||'')}</td><td>${esc(u.nombre||'')}</td><td>${esc(u.empresa||'')}</td>
+    <td><span class="pill" style="color:${u.role==='admin'?'var(--warn)':'var(--accent2)'};border-color:currentColor">${u.role}</span></td>
+    <td>${orders.filter(o => o.owner === u.id).map(o => esc(o.codigo)).join(', ') || '—'}</td>
+    <td>${fdate(u.created_at)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">Aún no hay clientes registrados.</td></tr>';
+}
+</script>
+</body>
+</html>

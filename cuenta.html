@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceso — RankeaPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23020604'/%3E%3Ctext x='8' y='46' font-family='monospace' font-size='38' font-weight='700' fill='%2300ff7f'%3E%3E_%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body class="app">
+<div class="wrap app">
+<nav>
+  <div class="container">
+    <a class="logo" href="index.html">&gt;_ <b>rankea</b>pro<span class="cur"></span></a>
+    <div class="navcta"><a class="btn btn-ghost" href="index.html">inicio</a></div>
+  </div>
+</nav>
+<main>
+  <div class="container">
+    <div class="auth-box">
+      <span class="cmd">./auth --login</span>
+      <div class="tabs">
+        <button class="active" data-tab="login">Iniciar sesión</button>
+        <button data-tab="registro">Crear cuenta</button>
+      </div>
+      <div class="panel">
+        <form id="f-login">
+          <div class="field"><label>correo</label><input type="email" name="email" required autocomplete="email"></div>
+          <div class="field"><label>contraseña</label><input type="password" name="password" required autocomplete="current-password"></div>
+          <button class="btn btn-primary full" type="submit">entrar</button>
+          <p class="hint" style="margin-top:14px"><a href="#" id="forgot" style="color:var(--accent2)">¿Olvidaste tu contraseña?</a></p>
+        </form>
+        <form id="f-registro" hidden>
+          <div class="field"><label>nombre</label><input type="text" name="nombre" required></div>
+          <div class="field"><label>empresa / marca (opcional)</label><input type="text" name="empresa"></div>
+          <div class="field"><label>correo</label><input type="email" name="email" required autocomplete="email"></div>
+          <div class="field"><label>contraseña (mín. 8 caracteres)</label><input type="password" name="password" minlength="8" required autocomplete="new-password"></div>
+          <div class="field"><label>código de orden (opcional)</label><input type="text" name="codigo" placeholder="RP-XXXX-XXX" style="text-transform:uppercase"></div>
+          <button class="btn btn-primary full" type="submit">crear cuenta</button>
+        </form>
+        <div class="msg" id="msg"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer><div class="container"><div>© RankeaPro</div><div>acceso seguro · supabase auth</div></div></footer>
+</div>
+<script src="app.js"></script>
+<script>
+if(!configurado) noConfig();
+const params = new URLSearchParams(location.search);
+const next = params.get('next') || 'panel.html';
+const msg = $('#msg');
+
+// Si ya hay sesión, entrar directo
+sb && sb.auth.getSession().then(({data:{session}}) => { if(session) location.href = next; });
+
+$$('.tabs button').forEach(b => b.onclick = () => {
+  $$('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  $('#f-login').hidden = b.dataset.tab !== 'login';
+  $('#f-registro').hidden = b.dataset.tab !== 'registro';
+  hideMsg(msg);
+});
+if(params.get('registro') !== null || params.get('orden')) { $$('.tabs button')[1].click(); }
+if(params.get('orden')) $('#f-registro [name=codigo]').value = params.get('orden');
+
+$('#f-login').onsubmit = async e => {
+  e.preventDefault(); hideMsg(msg);
+  const btn = e.target.querySelector('button'); btn.disabled = true;
+  const f = new FormData(e.target);
+  const { error } = await sb.auth.signInWithPassword({ email: f.get('email'), password: f.get('password') });
+  btn.disabled = false;
+  if(error) return showMsg(msg, error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : error.message);
+  location.href = next;
+};
+
+$('#f-registro').onsubmit = async e => {
+  e.preventDefault(); hideMsg(msg);
+  const btn = e.target.querySelector('button'); btn.disabled = true;
+  const f = new FormData(e.target);
+  const codigo = (f.get('codigo')||'').trim().toUpperCase();
+  const { data, error } = await sb.auth.signUp({
+    email: f.get('email'), password: f.get('password'),
+    options: { data: { nombre: f.get('nombre'), empresa: f.get('empresa') } }
+  });
+  btn.disabled = false;
+  if(error) return showMsg(msg, error.message);
+  if(data.session){
+    if(codigo) await sb.rpc('claim_order', { p_codigo: codigo });
+    location.href = 'panel.html' + (codigo ? '?orden=' + encodeURIComponent(codigo) : '');
+  } else {
+    showMsg(msg, 'Cuenta creada. Revisa tu correo y confirma tu dirección para entrar.' + (codigo ? ' Luego vincula el código ' + codigo + ' en tu panel.' : ''), 'ok');
+  }
+};
+
+$('#forgot').onclick = async e => {
+  e.preventDefault();
+  const email = $('#f-login [name=email]').value;
+  if(!email) return showMsg(msg, 'Escribe tu correo arriba y vuelve a pulsar.');
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/reset.html' });
+  showMsg(msg, error ? error.message : 'Te enviamos un enlace para restablecer tu contraseña.', error ? 'err' : 'ok');
+};
+</script>
+</body>
+</html>
