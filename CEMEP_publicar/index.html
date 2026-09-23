@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f5c3d">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>CEMEP · Recogida</title>
+<script>
+  // Compatibilidad: los QR y enlaces anteriores (/#p-…, /#a-…, /#g-…, /#demo-…)
+  // pertenecen al prototipo de demostración, que ahora vive en /demo.
+  (function(){ var h = location.hash || '';
+    if (/^#(p|a|g|demo)-/i.test(h)) location.replace('/demo' + h); })();
+</script>
+<style>
+:root{--brand:#1f5c3d;--gold:#c98a2b;--paper:#f4f2ea;--ink:#26251f;--ink3:#8a897f;--line:#d8d5c8}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink);margin:0;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.caja{max-width:420px;width:100%;text-align:center}
+.marca{font-size:26px;font-weight:800;color:var(--brand)}.marca span{color:var(--gold)}
+.sub{color:var(--ink3);font-size:13.5px;margin:4px 0 26px}
+a.op{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid var(--line);border-radius:14px;
+  padding:16px;margin-bottom:11px;text-decoration:none;color:var(--ink);text-align:left;transition:.15s}
+a.op:hover{border-color:var(--brand);transform:translateY(-1px)}
+.ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;flex:none}
+.op b{display:block;font-size:15.5px}.op small{color:var(--ink3);font-size:12px}
+.pie{margin-top:22px;font-size:12px;color:var(--ink3)}.pie a{color:var(--ink3)}
+</style></head><body><div class="caja">
+<div class="marca">CEMEP<span>·</span>Recogida</div>
+<div class="sub">Sistema de recogida vehicular · Colegio CEMEP</div>
+<a class="op" href="/padre"><span class="ic" style="background:#f6ecd9">🚗</span><span><b>Soy padre o tutor</b><small>Avisar que voy en camino</small></span></a>
+<a class="op" href="/aula"><span class="ic" style="background:#e3edf7">📚</span><span><b>Aula</b><small>Avisos para los maestros</small></span></a>
+<a class="op" href="/puerta"><span class="ic" style="background:#e4efe6">🚪</span><span><b>Puerta</b><small>Entrega en la zona de carga</small></span></a>
+<div class="pie"><a href="/admin">Administración</a> · <a href="/Manual_CEMEP.html">Manuales de uso</a></div>
+</div></body></html>
