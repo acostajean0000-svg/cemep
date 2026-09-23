@@ -45,6 +45,21 @@ tr.inactivo td{opacity:.45}
 .kpis{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}
 .kpi{flex:1;min-width:130px;background:#fafaf6;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
 .kpi b{display:block;font-size:20px;color:var(--brand)}.kpi span{font-size:11px;color:var(--ink3)}
+
+.chk{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.chkHead{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
+.chkHead .ic{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none;color:#fff}
+.chk.crit .ic{background:var(--alert)} .chk.av .ic{background:var(--gold)} .chk.bien .ic{background:var(--brand)}
+.chkHead b{flex:1;font-size:13.5px}
+.chkN{font-size:18px;font-weight:800}
+.chk.crit .chkN{color:var(--alert)} .chk.av .chkN{color:#8a5e12} .chk.bien .chkN{color:var(--brand)}
+.chkBody{display:none;padding:0 12px 11px 48px;font-size:12.5px}
+.chk.abierto .chkBody{display:block}
+.chkBody .porque{color:var(--ink2);margin-bottom:6px}
+.chkBody ul{margin:4px 0 0;padding-left:16px;max-height:220px;overflow:auto}
+.chkBody li{margin-bottom:2px}
+.ver{background:none;border:none;color:var(--blue);text-decoration:underline;cursor:pointer;font-size:12px;font-family:inherit;padding:0 0 0 6px}
+.resumenSalud{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
 .pie{font-size:11px;color:var(--ink3);text-align:center;margin-top:16px}
 .salir{font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:inherit}
 </style></head><body><div class="wrap">
@@ -67,6 +82,7 @@ tr.inactivo td{opacity:.45}
     <button class="tab" data-v="config">Horarios y configuración</button>
     <button class="tab" data-v="reporte">Reporte</button>
     <button class="tab" data-v="importar">Importar</button>
+    <button class="tab" data-v="salud">Salud de datos</button>
   </div>
   <div class="msg" id="mGlobal"></div>
 
@@ -233,6 +249,20 @@ tr.inactivo td{opacity:.45}
     </div>
   </div>
 
+
+  <!-- ===== SALUD DE DATOS ===== -->
+  <div class="vista" id="v-salud">
+    <div class="card">
+      <div class="fila">
+        <div><h2 style="margin:0">Salud de datos</h2>
+          <div class="nota" style="margin:2px 0 0">Revisa todo lo que falta o impide operar. Úsela después de cada carga y antes de la primera salida.</div></div>
+        <div class="fijo"><button class="btn" id="bSalud">Revisar ahora</button></div>
+      </div>
+      <div id="saludResumen" style="margin-top:12px"></div>
+      <div id="saludLista"></div>
+    </div>
+  </div>
+
   <div class="pie"><span id="quien"></span> · <button class="salir" id="bSalir">cerrar sesión</button></div>
 </div>
 
@@ -324,7 +354,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
 /* =============== FAMILIAS =============== */
 async function cargarFamilias(){
   const fams = await ok(sb.from('familias')
-    .select('id, apellido, activa, estudiantes(id, nombre, activo, aula_id), tutores(id, nombre, relacion, telefono, activo, perfil_id, pin_hash)')
+    .select('id, apellido, activa, estudiantes(id, nombre, activo, aula_id, codigo), tutores(id, nombre, relacion, telefono, correo, activo, perfil_id, pin_hash)')
     .order('apellido'));
   window.__fams = fams;
   pintarFamilias();
@@ -809,6 +839,109 @@ $('bCredenciales').onclick = () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
   a.download = 'credenciales_CEMEP_' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
+};
+
+
+/* =============== SALUD DE DATOS =============== */
+async function revisarSalud(){
+  $('bSalud').disabled = true; $('saludResumen').innerHTML = '<div class="nota">Revisando…</div>'; $('saludLista').innerHTML = '';
+  try {
+    await Promise.all([cargarAulas(), cargarCuentas()]); await cargarFamilias();
+    const fams = (window.__fams || []).filter(f => f.activa);
+    const aulasAct = aulas.filter(a => a.activa);
+    const idsAulaAct = new Set(aulasAct.map(a => a.id));
+    const nombreAula = id => (aulas.find(a => a.id === id) || {}).nombre || '—';
+    const cuentaDe = id => cuentas.find(c => c.id === id);
+    const tutoresAct = fams.flatMap(f => f.tutores.filter(t => t.activo).map(t => ({ ...t, familia: f.apellido })));
+    const estAct = fams.flatMap(f => f.estudiantes.filter(e => e.activo).map(e => ({ ...e, familia: f.apellido })));
+    const perfilesTutor = new Set(fams.flatMap(f => f.tutores).map(t => t.perfil_id).filter(Boolean));
+    const maestrosAct = cuentas.filter(c => c.rol === 'maestro' && c.activo);
+    const conMaestro = new Set(aulas.flatMap(a => (a.maestros_aulas || []).filter(m => (cuentaDe(m.perfil_id) || {}).activo).map(() => a.id)));
+    const aulasConEst = new Set(estAct.map(e => e.aula_id));
+
+    // [gravedad, título, por qué importa y cómo se corrige, elementos [{texto, familia}]]
+    const chequeos = [
+      ['crit', 'Familias sin nadie autorizado a recoger',
+       'Ningún tutor activo: nadie de esa familia puede avisar. Agregue un tutor en la ficha de la familia.',
+       fams.filter(f => !f.tutores.some(t => t.activo)).map(f => ({ texto: f.apellido, familia: f.apellido }))],
+      ['crit', 'Tutores sin cuenta, con correo registrado',
+       'Tienen correo pero la cuenta no se creó o se desvinculó (posible conflicto de rol en la importación). Revise el correo en la pestaña Cuentas.',
+       tutoresAct.filter(t => !t.perfil_id && t.correo).map(t => ({ texto: `${t.nombre} · ${t.correo} (${t.familia})`, familia: t.familia }))],
+      ['crit', 'Tutores sin PIN',
+       'No pueden confirmar un aviso. Use "cambiar PIN" en la ficha de la familia.',
+       tutoresAct.filter(t => !t.pin_hash).map(t => ({ texto: `${t.nombre} (${t.familia})`, familia: t.familia }))],
+      ['crit', 'Estudiantes sin aula o en un aula desactivada',
+       'Ningún maestro recibirá sus avisos. Asigne un aula activa en la ficha de la familia.',
+       estAct.filter(e => !e.aula_id || !idsAulaAct.has(e.aula_id)).map(e => ({ texto: `${e.nombre} · ${e.aula_id ? nombreAula(e.aula_id) + ' (desactivada)' : 'sin aula'}`, familia: e.familia }))],
+      ['crit', 'Aulas con estudiantes pero sin maestro',
+       'Los avisos de esos estudiantes no le llegan a nadie. Asigne un maestro en Aulas y maestros.',
+       aulasAct.filter(a => aulasConEst.has(a.id) && !conMaestro.has(a.id)).map(a => ({ texto: a.nombre }))],
+      ['crit', 'Maestros sin aula asignada',
+       'Pueden entrar, pero no verán ningún aviso. Asígneles su aula en Aulas y maestros.',
+       maestrosAct.filter(m => !aulas.some(a => (a.maestros_aulas || []).some(x => x.perfil_id === m.id))).map(m => ({ texto: `${m.nombre || ''} · ${m.email}` }))],
+      ['crit', 'Sin personal de puerta',
+       'Nadie puede registrar entregas. Cree al menos una cuenta con rol Puerta.',
+       cuentas.some(c => c.rol === 'puerta' && c.activo) ? [] : [{ texto: 'No hay ninguna cuenta de puerta activa' }]],
+
+      ['av', 'Tutores sin correo',
+       'Quedan registrados pero no pueden usar la app. Agregue su correo en la ficha de la familia.',
+       tutoresAct.filter(t => !t.correo && !t.perfil_id).map(t => ({ texto: `${t.nombre} (${t.familia})`, familia: t.familia }))],
+      ['av', 'Estudiantes sin código',
+       'Funcionan, pero al reimportar la base del próximo año no se pueden reconocer con certeza y podrían duplicarse.',
+       estAct.filter(e => !e.codigo).map(e => ({ texto: `${e.nombre} (${e.familia})`, familia: e.familia }))],
+      ['av', 'Familias sin estudiantes activos',
+       'Posiblemente ya no pertenecen al colegio. Desactívelas si corresponde.',
+       fams.filter(f => !f.estudiantes.some(e => e.activo)).map(f => ({ texto: f.apellido, familia: f.apellido }))],
+      ['av', 'Aulas activas sin estudiantes',
+       'Aulas vacías: revise si deben desactivarse o si falta cargar a sus estudiantes.',
+       aulasAct.filter(a => !aulasConEst.has(a.id)).map(a => ({ texto: a.nombre }))],
+      ['av', 'Cuentas de tutor sin familia',
+       'Cuentas con rol tutor que ya no están ligadas a ningún tutor (por ejemplo, tras eliminar una familia). Elimínelas en Cuentas si no se usarán.',
+       cuentas.filter(c => c.rol === 'tutor' && !perfilesTutor.has(c.id)).map(c => ({ texto: `${c.nombre || ''} · ${c.email}` }))],
+      ['av', 'Cuentas sin rol',
+       'Existen como usuario pero no tienen perfil: no pueden entrar a ninguna pantalla. Vincúlelas o elimínelas en Cuentas.',
+       cuentas.filter(c => !c.rol).map(c => ({ texto: c.email }))],
+      ['av', 'Cuentas de prueba',
+       'Deben eliminarse antes de operar con datos reales.',
+       cuentas.filter(c => /prueba/i.test(c.email || '')).map(c => ({ texto: c.email }))]
+    ];
+
+    const crit = chequeos.filter(c => c[0] === 'crit' && c[3].length).length;
+    const av   = chequeos.filter(c => c[0] === 'av' && c[3].length).length;
+    $('saludResumen').innerHTML = `<div class="resumenSalud">
+      <div class="kpi"><b style="color:${crit ? 'var(--alert)' : 'var(--brand)'}">${crit}</b><span>problemas que impiden operar</span></div>
+      <div class="kpi"><b style="color:${av ? '#8a5e12' : 'var(--brand)'}">${av}</b><span>avisos a revisar</span></div>
+      <div class="kpi"><b>${fams.length}</b><span>familias activas</span></div>
+      <div class="kpi"><b>${estAct.length}</b><span>estudiantes activos</span></div>
+      <div class="kpi"><b>${tutoresAct.filter(t => t.perfil_id).length}/${tutoresAct.length}</b><span>tutores con cuenta</span></div></div>`
+      + (!crit && !av ? '<div class="msg show ok">✓ Todo en orden: no hay datos faltantes ni inconsistencias.</div>'
+         : !crit ? '<div class="msg show ok">✓ Nada impide operar. Revise los avisos cuando pueda.</div>' : '');
+
+    $('saludLista').innerHTML = chequeos.map(([g, tit, porque, items]) => {
+      const cls = items.length ? g : 'bien';
+      return `<div class="chk ${cls}">
+        <div class="chkHead" data-abrir><span class="ic">${items.length ? (g === 'crit' ? '!' : 'i') : '✓'}</span>
+          <b>${tit}</b><span class="chkN">${items.length}</span></div>
+        <div class="chkBody"><div class="porque">${porque}</div>${items.length ? '<ul>' + items.slice(0, 100).map(it =>
+          `<li>${esc(it.texto)}${it.familia ? `<button class="ver" data-verfam="${esc(it.familia)}">ver ficha</button>` : ''}</li>`).join('')
+          + (items.length > 100 ? `<li>… y ${items.length - 100} más</li>` : '') + '</ul>' : ''}</div></div>`;
+    }).join('');
+    // abrir automáticamente los críticos con problemas
+    document.querySelectorAll('#saludLista .chk.crit').forEach(c => c.classList.add('abierto'));
+  } catch (e) { falla(e); $('saludResumen').innerHTML = ''; }
+  finally { $('bSalud').disabled = false; }
+}
+$('bSalud').onclick = revisarSalud;
+document.querySelector('.tab[data-v="salud"]').addEventListener('click', () => { if (!$('saludLista').innerHTML) revisarSalud(); });
+$('saludLista').onclick = e => {
+  const v = e.target.dataset.verfam;
+  if (v) {
+    document.querySelector('.tab[data-v="familias"]').click();
+    $('buscaFam').value = v; pintarFamilias();
+    const f = document.querySelector('.fam'); if (f) { f.classList.add('abierta'); f.scrollIntoView({ behavior:'smooth' }); }
+    return;
+  }
+  const h = e.target.closest('[data-abrir]'); if (h) h.parentElement.classList.toggle('abierto');
 };
 
 /* =============== REPORTE =============== */
