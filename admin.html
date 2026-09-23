@@ -66,6 +66,7 @@ tr.inactivo td{opacity:.45}
     <button class="tab" data-v="cuentas">Cuentas</button>
     <button class="tab" data-v="config">Horarios y configuración</button>
     <button class="tab" data-v="reporte">Reporte</button>
+    <button class="tab" data-v="importar">Importar</button>
   </div>
   <div class="msg" id="mGlobal"></div>
 
@@ -181,6 +182,54 @@ tr.inactivo td{opacity:.45}
       <div class="kpis" id="kpis"></div>
       <table><thead><tr><th>Estudiante</th><th>Aula</th><th>Recogió</th><th>Aviso</th><th>Salió del aula</th><th>Entregado</th><th>Aviso → entrega</th></tr></thead>
       <tbody id="tRep"></tbody></table>
+    </div>
+  </div>
+
+
+  <!-- ===== IMPORTAR ===== -->
+  <div class="vista" id="v-importar">
+    <div class="card">
+      <h2>Importar familias desde la base del colegio</h2>
+      <div class="nota" style="margin-bottom:10px">
+        <b>1.</b> Usa la exportación del sistema del colegio o la plantilla, guardada como <b>CSV</b> (en Excel: Archivo → Guardar como → CSV).
+        <b>2.</b> Súbela. <b>3.</b> Indica qué columna es cada dato. <b>4.</b> Revisa la vista previa y confirma.<br>
+        Una fila por estudiante; los hermanos se agrupan en la misma familia. El archivo se lee en este navegador y va directo a la base del colegio.
+      </div>
+      <div class="fila">
+        <div class="fijo"><button class="btn gris" id="bPlantilla">Descargar plantilla</button></div>
+        <div><input class="txt" type="file" id="impArchivo" accept=".csv,.txt,text/csv"></div>
+      </div>
+    </div>
+
+    <div class="card" id="impMapeo" style="display:none">
+      <h2>¿Qué columna del archivo es cada dato?</h2>
+      <div class="nota" id="impInfo"></div>
+      <div id="impCampos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 12px;margin-top:8px"></div>
+      <div style="margin-top:12px;font-size:13px;line-height:1.9">
+        <label style="display:inline;font-weight:400"><input type="checkbox" id="impCrearAulas"> Crear las aulas que no existan</label><br>
+        <label style="display:inline;font-weight:400"><input type="checkbox" id="impBaja"> Cambio de año: dar de baja a los estudiantes que ya no aparecen en este archivo</label>
+      </div>
+      <button class="btn" id="bRevisar" style="margin-top:12px">Revisar</button>
+    </div>
+
+    <div class="card" id="impPrevia" style="display:none">
+      <h2>Vista previa</h2>
+      <div class="kpis" id="impKpis"></div>
+      <label style="display:inline;font-weight:400;font-size:13px"><input type="checkbox" id="impSoloProb"> Mostrar solo filas con observaciones</label>
+      <div style="overflow-x:auto;margin-top:8px"><table>
+        <thead><tr><th></th><th>Fila</th><th>Estudiante</th><th>Aula</th><th>Familia</th><th>Quién recoge</th><th>Observaciones</th></tr></thead>
+        <tbody id="impTabla"></tbody></table></div>
+      <div class="nota" id="impMas"></div>
+      <button class="btn" id="bImportar" style="margin-top:12px">Importar</button>
+      <div class="nota" id="impProgreso" style="margin-top:8px;font-weight:700"></div>
+    </div>
+
+    <div class="card" id="impResultado" style="display:none">
+      <h2>Importación terminada</h2>
+      <div class="kpis" id="impResKpis"></div>
+      <div id="impResDetalle" style="font-size:13px"></div>
+      <button class="btn sec" id="bCredenciales" style="margin-top:12px">Descargar credenciales para repartir</button>
+      <div class="nota" style="margin-top:6px">Las contraseñas nuevas solo aparecen en ese archivo, esta única vez. Guárdalo en un lugar seguro y bórralo después de repartir las credenciales.</div>
     </div>
   </div>
 
@@ -540,6 +589,226 @@ $('bDia').onclick = async () => {
 $('tDias').onclick = async e => {
   const f = e.target.dataset.borrarDia; if (!f) return;
   try { await ok(sb.from('dias_especiales').delete().eq('fecha', f)); await cargarConfig(); } catch (err) { falla(err); }
+};
+
+
+/* =============== IMPORTAR =============== */
+const CAMPOS = [
+  ['est_codigo',     'codigo_estudiante', 'Código o matrícula del estudiante', false, ['codigo','matricula','codigo estudiante','id estudiante','codigo alumno']],
+  ['est_nombre',     'nombre_estudiante', 'Nombre del estudiante',             true,  ['nombre estudiante','estudiante','alumno','nombre alumno','nombre completo','nombre']],
+  ['aula',           'aula',              'Aula o curso',                      true,  ['aula','curso','grado','seccion','grupo','salon']],
+  ['apellido',       'apellido_familia',  'Apellido de la familia',            true,  ['apellido familia','apellidos','apellido','familia']],
+  ['familia_codigo', 'codigo_familia',    'Código de familia',                 false, ['codigo familia','id familia','familia id','numero familia']],
+  ['t1_nombre',   'tutor1_nombre',   'Tutor 1 · nombre',   false, ['tutor1 nombre','tutor 1','nombre tutor','madre','acudiente','responsable']],
+  ['t1_relacion', 'tutor1_relacion', 'Tutor 1 · relación', false, ['tutor1 relacion','parentesco','relacion']],
+  ['t1_telefono', 'tutor1_telefono', 'Tutor 1 · teléfono', false, ['tutor1 telefono','telefono','celular','movil']],
+  ['t1_correo',   'tutor1_correo',   'Tutor 1 · correo',   false, ['tutor1 correo','correo','email','e mail','mail']],
+  ['t1_pin',      'tutor1_pin',      'Tutor 1 · PIN',      false, ['tutor1 pin','pin']],
+  ['t2_nombre',   'tutor2_nombre',   'Tutor 2 · nombre',   false, ['tutor2 nombre','tutor 2','padre']],
+  ['t2_relacion', 'tutor2_relacion', 'Tutor 2 · relación', false, ['tutor2 relacion']],
+  ['t2_telefono', 'tutor2_telefono', 'Tutor 2 · teléfono', false, ['tutor2 telefono','telefono 2','celular 2']],
+  ['t2_correo',   'tutor2_correo',   'Tutor 2 · correo',   false, ['tutor2 correo','correo 2','email 2']],
+  ['t2_pin',      'tutor2_pin',      'Tutor 2 · PIN',      false, ['tutor2 pin']]
+];
+const normTxt = t => String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const normAula = t => String(t ?? '').toLowerCase().replace(/\s+/g,'');
+const correoOk = c => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c);
+let imp = { cab: [], datos: [], filas: [], tutores: [], cuentas: {} };
+
+function leerCSV(texto){
+  texto = texto.replace(/^\ufeff/, '');
+  const primera = texto.split(/\r?\n/)[0] || '';
+  const sep = [';', ',', '\t'].map(c => [c, primera.split(c).length]).sort((a,b) => b[1] - a[1])[0][0];
+  const filas = []; let fila = [], campo = '', comillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (comillas) {
+      if (c === '"' && texto[i+1] === '"') { campo += '"'; i++; }
+      else if (c === '"') comillas = false;
+      else campo += c;
+    } else if (c === '"') comillas = true;
+    else if (c === sep) { fila.push(campo); campo = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && texto[i+1] === '\n') i++;
+      fila.push(campo); campo = '';
+      if (fila.some(x => x.trim() !== '')) filas.push(fila);
+      fila = [];
+    } else campo += c;
+  }
+  fila.push(campo); if (fila.some(x => x.trim() !== '')) filas.push(fila);
+  return filas.map(f => f.map(x => x.trim()));
+}
+
+$('bPlantilla').onclick = () => {
+  const cab = CAMPOS.map(c => c[1]);
+  const ej = ['2026-0142','Sofía Rodríguez Pérez','3° A','Rodríguez','F-0077','Ana Pérez','madre','809-555-0101','ana.perez@correo.com','','Luis Rodríguez','padre','809-555-0102','luis.r@correo.com',''];
+  const csv = '\ufeff' + [cab, ej].map(l => l.map(v => '"' + v + '"').join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  a.download = 'plantilla_importacion_CEMEP.csv'; a.click();
+};
+
+$('impArchivo').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  let texto = await f.text();
+  if (/\ufffd/.test(texto)) {                       // no era UTF-8: probablemente Windows-1252 (Excel)
+    texto = new TextDecoder('windows-1252').decode(await f.arrayBuffer());
+  }
+  const t = leerCSV(texto);
+  if (t.length < 2) { msg($('mGlobal'), 'El archivo no tiene filas de datos.', 'warn'); return; }
+  imp.cab = t[0]; imp.datos = t.slice(1);
+  $('impInfo').innerHTML = `<b>${imp.datos.length}</b> filas y <b>${imp.cab.length}</b> columnas leídas de <b>${esc(f.name)}</b>. Revisa las correspondencias que propuso el panel.`;
+  const opciones = '<option value="">— no está en el archivo —</option>' + imp.cab.map((c,i) => `<option value="${i}">${esc(c)}</option>`).join('');
+  const usados = new Set();
+  $('impCampos').innerHTML = CAMPOS.map(([k, plantilla, etiqueta, req, alias]) => {
+    const nc = imp.cab.map(normTxt);
+    let idx = nc.indexOf(normTxt(plantilla));
+    if (idx < 0) for (const a of alias) { const j = nc.findIndex((h,i) => !usados.has(i) && h === a); if (j >= 0) { idx = j; break; } }
+    if (idx < 0) for (const a of alias) { const j = nc.findIndex((h,i) => !usados.has(i) && h.includes(a)); if (j >= 0) { idx = j; break; } }
+    if (idx >= 0) usados.add(idx);
+    return `<div><label>${etiqueta}${req ? ' <span style="color:var(--alert)">*</span>' : ''}</label>
+      <select class="sel" data-campo="${k}">${opciones.replace(`value="${idx}"`, `value="${idx}" selected`)}</select></div>`;
+  }).join('');
+  $('impMapeo').style.display = 'block'; $('impPrevia').style.display = 'none'; $('impResultado').style.display = 'none';
+};
+
+function pinAleatorio(){ const r = new Uint32Array(1); crypto.getRandomValues(r); return String(1000 + r[0] % 9000); }
+
+$('bRevisar').onclick = () => {
+  const col = {}; document.querySelectorAll('[data-campo]').forEach(s => col[s.dataset.campo] = s.value === '' ? null : +s.value);
+  const falta = CAMPOS.filter(c => c[3] && col[c[0]] === null).map(c => c[2]);
+  if (falta.length) { msg($('mGlobal'), 'Falta indicar: ' + falta.join(', ') + '.', 'warn'); return; }
+  const v = (fila, k) => col[k] === null ? '' : String(fila[col[k]] ?? '').trim();
+  const crearAulas = $('impCrearAulas').checked;
+  const aulasExist = new Set(aulas.filter(a => a.activa).map(a => normAula(a.nombre)));
+  const pinesGen = {}, codigosVistos = {};
+
+  imp.filas = imp.datos.map((fila, i) => {
+    const n = i + 2;                                      // número de fila como en Excel
+    const errores = [], avisos = [];
+    const r = { n, est_codigo: v(fila,'est_codigo'), est_nombre: v(fila,'est_nombre'), aula: v(fila,'aula'), apellido: v(fila,'apellido') };
+    if (!r.est_nombre) errores.push('Falta el nombre del estudiante');
+    if (!r.apellido)   errores.push('Falta el apellido de la familia');
+    if (!r.aula)       errores.push('Falta el aula');
+    else if (!aulasExist.has(normAula(r.aula))) (crearAulas ? avisos : errores).push(crearAulas ? `Se creará el aula "${r.aula}"` : `El aula "${r.aula}" no existe`);
+    if (r.est_codigo) {
+      if (codigosVistos[r.est_codigo]) errores.push(`Código repetido (también en la fila ${codigosVistos[r.est_codigo]})`);
+      else codigosVistos[r.est_codigo] = n;
+    }
+    r.tutores = [];
+    for (const k of ['t1','t2']) {
+      const nombre = v(fila, k+'_nombre'); let correo = v(fila, k+'_correo').toLowerCase(); const pinArch = v(fila, k+'_pin');
+      if (!nombre && !correo) continue;
+      if (correo && !correoOk(correo)) { avisos.push(`Correo no válido: ${correo}`); correo = ''; }
+      if (!correo) avisos.push(`${nombre || 'Tutor'} no tiene correo: quedará registrado pero sin poder entrar a la app`);
+      if (pinArch && !/^[0-9]{4}$/.test(pinArch)) avisos.push(`PIN "${pinArch}" no válido: se generará uno`);
+      r.tutores.push({ nombre: nombre || correo, relacion: v(fila,k+'_relacion'), telefono: v(fila,k+'_telefono'), correo, pinArch: /^[0-9]{4}$/.test(pinArch) ? pinArch : '' });
+    }
+    if (!r.tutores.length) avisos.push('Sin nadie registrado para recoger');
+    const t1 = r.tutores[0] || {};
+    r.familia_codigo = v(fila,'familia_codigo') || (t1.correo ? 'c:' + t1.correo : 'a:' + normTxt(r.apellido) + '|' + normTxt(t1.nombre || ''));
+    r.tutores.forEach(t => {
+      const clave = r.familia_codigo + '|' + (t.correo || normTxt(t.nombre));
+      if (t.pinArch) { t.pin = t.pinArch; t.pin_del_archivo = true; }
+      else { t.pin = pinesGen[clave] = pinesGen[clave] || pinAleatorio(); t.pin_del_archivo = false; }
+    });
+    r.errores = errores; r.avisos = avisos;
+    return r;
+  });
+
+  const ok_ = imp.filas.filter(f => !f.errores.length), mal = imp.filas.filter(f => f.errores.length);
+  const familias = new Set(ok_.map(f => f.familia_codigo)).size;
+  const conCorreo = new Set(ok_.flatMap(f => f.tutores.filter(t => t.correo).map(t => t.correo))).size;
+  const sinCorreo = ok_.reduce((s,f) => s + f.tutores.filter(t => !t.correo).length, 0);
+  $('impKpis').innerHTML = [[ok_.length,'estudiantes listos'],[mal.length,'filas con errores (no se importan)'],[familias,'familias'],[conCorreo,'cuentas por crear o vincular'],[sinCorreo,'tutores sin correo']]
+    .map(([v,t]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
+  $('bImportar').textContent = `Importar ${ok_.length} estudiante(s)`;
+  $('bImportar').disabled = !ok_.length;
+  if ($('impBaja').checked && ok_.some(f => !f.est_codigo))
+    msg($('mGlobal'), 'Para dar de baja a los que no aparecen, todas las filas necesitan código de estudiante. Esa opción no se aplicará.', 'warn');
+  pintarPrevia();
+  $('impPrevia').style.display = 'block'; $('impResultado').style.display = 'none'; $('impProgreso').textContent = '';
+  $('impPrevia').scrollIntoView({ behavior:'smooth' });
+};
+$('impSoloProb').onchange = pintarPrevia;
+function pintarPrevia(){
+  const solo = $('impSoloProb').checked;
+  const lista = imp.filas.filter(f => !solo || f.errores.length || f.avisos.length);
+  $('impTabla').innerHTML = lista.slice(0, 300).map(f => `<tr>
+    <td>${f.errores.length ? '<span style="color:var(--alert)">✗</span>' : f.avisos.length ? '<span style="color:#8a5e12">!</span>' : '<span style="color:var(--brand)">✓</span>'}</td>
+    <td>${f.n}</td><td>${esc(f.est_nombre)}${f.est_codigo ? `<div class="nota" style="margin:0">${esc(f.est_codigo)}</div>` : ''}</td>
+    <td>${esc(f.aula)}</td><td>${esc(f.apellido)}</td>
+    <td style="font-size:12px">${f.tutores.map(t => esc(t.nombre) + (t.correo ? ` <span style="color:var(--ink3)">${esc(t.correo)}</span>` : '')).join('<br>')}</td>
+    <td style="font-size:12px">${f.errores.map(x => `<div style="color:var(--alert)">${esc(x)}</div>`).join('')}${f.avisos.map(x => `<div style="color:#8a5e12">${esc(x)}</div>`).join('')}</td></tr>`).join('');
+  $('impMas').textContent = lista.length > 300 ? `Se muestran 300 de ${lista.length} filas.` : '';
+}
+
+$('bImportar').onclick = async () => {
+  const validas = imp.filas.filter(f => !f.errores.length);
+  if (!validas.length) return;
+  if (!confirm(`Se importarán ${validas.length} estudiante(s) y se crearán las cuentas de sus tutores. ¿Continuar?`)) return;
+  $('bImportar').disabled = true;
+  const prog = t => $('impProgreso').textContent = t;
+  const tot = { familias_nuevas:0, estudiantes_nuevos:0, estudiantes_actualizados:0, tutores_nuevos:0 };
+  const erroresFila = [], tutores = {};
+  try {
+    for (let i = 0; i < validas.length; i += 100) {
+      prog(`Guardando estudiantes… ${Math.min(i + 100, validas.length)} de ${validas.length}`);
+      const lote = validas.slice(i, i + 100).map(f => ({
+        fila: f.n, est_codigo: f.est_codigo, est_nombre: f.est_nombre, aula: f.aula, apellido: f.apellido,
+        familia_codigo: f.familia_codigo,
+        tutores: f.tutores.map(t => ({ nombre: t.nombre, relacion: t.relacion, telefono: t.telefono, correo: t.correo, pin: t.pin, pin_del_archivo: t.pin_del_archivo }))
+      }));
+      const r = await ok(sb.rpc('importar_lote', { p_filas: lote, p_crear_aulas: $('impCrearAulas').checked }));
+      for (const k in tot) tot[k] += r[k] || 0;
+      r.filas.filter(x => !x.ok).forEach(x => erroresFila.push(x));
+      r.tutores.forEach(t => {                               // un mismo tutor aparece una vez por hijo
+        const prev = tutores[t.tutor_id];
+        tutores[t.tutor_id] = prev ? { ...prev, pin_aplicado: prev.pin_aplicado || t.pin_aplicado, pin: prev.pin || t.pin } : t;
+      });
+    }
+    const lista = Object.values(tutores);
+    const porCrear = lista.filter(t => t.correo && !t.tiene_cuenta);
+    for (let i = 0; i < porCrear.length; i += 25) {
+      prog(`Creando cuentas… ${Math.min(i + 25, porCrear.length)} de ${porCrear.length}`);
+      const r = await fnCuenta({ accion:'cuentas_lote', items: porCrear.slice(i, i + 25).map(t => ({ tutor_id: t.tutor_id, correo: t.correo, nombre: t.nombre })) });
+      r.resultados.forEach(x => { tutores[x.tutor_id].cuenta = x; });
+    }
+    let bajas = 0;
+    if ($('impBaja').checked && validas.every(f => f.est_codigo)) {
+      prog('Aplicando bajas del cambio de año…');
+      bajas = await ok(sb.rpc('baja_no_incluidos', { p_codigos: validas.map(f => f.est_codigo) }));
+    }
+    imp.tutores = Object.values(tutores);
+    const creadas = imp.tutores.filter(t => t.cuenta && t.cuenta.estado === 'creada').length;
+    const vinculadas = imp.tutores.filter(t => t.cuenta && t.cuenta.estado === 'vinculada').length;
+    const problemas = imp.tutores.filter(t => t.cuenta && (t.cuenta.estado === 'conflicto' || t.cuenta.estado === 'error'));
+    $('impResKpis').innerHTML = [[tot.familias_nuevas,'familias nuevas'],[tot.estudiantes_nuevos,'estudiantes nuevos'],[tot.estudiantes_actualizados,'estudiantes actualizados'],
+      [creadas,'cuentas creadas'],[vinculadas,'cuentas que ya existían'],[bajas,'dados de baja']]
+      .map(([v,t]) => `<div class="kpi"><b>${v}</b><span>${t}</span></div>`).join('');
+    $('impResDetalle').innerHTML =
+      (erroresFila.length ? `<p style="color:var(--alert)"><b>${erroresFila.length} fila(s) rechazadas por la base:</b><br>` + erroresFila.slice(0, 30).map(x => `Fila ${x.fila}: ${esc(x.error)}`).join('<br>') + '</p>' : '')
+      + (problemas.length ? `<p style="color:#8a5e12"><b>${problemas.length} cuenta(s) con problemas</b> (detalle en el archivo de credenciales):<br>` + problemas.slice(0, 30).map(t => `${esc(t.nombre)} · ${esc(t.correo)}: ${esc(t.cuenta.detalle || '')}`).join('<br>') + '</p>' : '');
+    $('impResultado').style.display = 'block'; prog('');
+    await Promise.all([cargarAulas(), cargarCuentas()]); await cargarFamilias();
+    $('impResultado').scrollIntoView({ behavior:'smooth' });
+  } catch (e) { falla(e); prog('La importación se detuvo. Lo ya guardado queda; puedes volver a importar el mismo archivo sin duplicar.'); }
+  finally { $('bImportar').disabled = false; }
+};
+
+$('bCredenciales').onclick = () => {
+  const cab = ['familia','tutor','correo','contraseña','PIN','estado'];
+  const estado = t => !t.correo ? 'Sin correo: no puede entrar a la app hasta registrar uno'
+    : !t.cuenta ? (t.tiene_cuenta ? 'Ya tenía cuenta' : '')
+    : t.cuenta.estado === 'creada' ? 'Cuenta creada' : t.cuenta.estado === 'vinculada' ? 'Ya tenía cuenta (usa su contraseña actual)'
+    : (t.cuenta.detalle || t.cuenta.estado);
+  const lineas = imp.tutores
+    .sort((a,b) => (a.familia || '').localeCompare(b.familia || ''))
+    .map(t => [t.familia, t.nombre, t.correo || '', (t.cuenta && t.cuenta.clave) || '', t.pin_aplicado ? t.pin : '(sin cambio)', estado(t)]);
+  const csv = '\ufeff' + [cab, ...lineas].map(l => l.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  a.download = 'credenciales_CEMEP_' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
 };
 
 /* =============== REPORTE =============== */
