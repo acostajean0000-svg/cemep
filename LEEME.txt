@@ -1,0 +1,35 @@
+CEMEP · RECOGIDA — ARCHIVOS PARA PUBLICAR
+=========================================
+
+CÓMO SUBIRLOS
+1. En GitHub, abre el repositorio conectado al proyecto "cemep" de Vercel.
+2. Borra lo que haya de otros proyectos (revisa que no queden archivos de Rankea Pro).
+3. "Add file" → "Upload files" → arrastra TODOS los archivos de esta carpeta,
+   sueltos en la raíz (no dentro de una subcarpeta).
+4. "Commit changes". Vercel publica solo en uno o dos minutos.
+
+DIRECCIONES QUE QUEDAN
+  /          entrada: elige padre, aula o puerta
+  /padre     familias (se puede agregar a la pantalla de inicio del teléfono)
+  /aula      maestros
+  /puerta    personal de entrega
+  /admin     administración
+  /demo      prototipo de demostración (los QR y enlaces antiguos llegan aquí)
+  /Portal_CEMEP.html   portal de presentación para la dirección
+  /Manual_CEMEP.html   manuales de uso por rol
+
+QUÉ HACE CADA ARCHIVO ESPECIAL
+  vercel.json            direcciones limpias (/padre en vez de /padre.html) y
+                         cabeceras de seguridad; además evita que Google indexe el sitio
+  manifest.webmanifest   permite instalar /padre como una app en el teléfono
+  icono-*.png, apple-touch-icon.png   ícono de la app
+
+NO SUBIR NUNCA
+  - prueba-conexion.html (tiene credenciales de prueba escritas)
+  - archivos .sql y crear-cuenta.ts (van en Supabase, no en el sitio)
+  - la clave service_role de Supabase
+
+DESPUÉS DE PUBLICAR
+  - Prueba /padre desde un teléfono con una cuenta de prueba.
+  - Si cambias el dominio, actualiza en Supabase:
+    Authentication → URL Configuration → Site URL.
