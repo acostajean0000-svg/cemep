@@ -323,7 +323,10 @@ function pintarFamilias(){
         <div class="fijo"><button class="btn chico" data-nt="${f.id}">Agregar</button></div>
       </div>
       <div class="nota">Si escribes su correo, se le crea la cuenta en el mismo paso y el panel te muestra la contraseña para entregársela. Si ya tenía cuenta, solo se vincula.</div>
-      <div style="margin-top:10px"><button class="btn gris chico" data-act-fam="${f.id}" data-v="${!f.activa}">${f.activa ? 'Desactivar familia' : 'Reactivar familia'}</button></div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn gris chico" data-act-fam="${f.id}" data-v="${!f.activa}">${f.activa ? 'Desactivar familia' : 'Reactivar familia'}</button>
+        <button class="btn chico elim" data-elim-fam="${f.id}" data-ap="${esc(f.apellido)}">Eliminar familia</button>
+      </div>
     </div>
   </div>`).join('') || '<div class="nota">No hay familias.</div>';
 }
@@ -381,6 +384,20 @@ $('listaFam').onclick = async e => {
     }
     if (d.actEst) { await ok(sb.from('estudiantes').update({ activo: d.v === 'true' }).eq('id', d.actEst)); await cargarFamilias(); }
     if (d.actTut) { await ok(sb.from('tutores').update({ activo: d.v === 'true' }).eq('id', d.actTut)); await cargarFamilias(); }
+    if (d.elimFam) {
+      const r = prompt('Vas a ELIMINAR para siempre la familia ' + d.ap + ', con sus estudiantes y tutores.\n\n'
+        + 'Solo es posible si nunca ha tenido avisos. Si es una familia real que se fue del colegio, usa "Desactivar familia".\n\n'
+        + 'Para confirmar, escribe ELIMINAR:');
+      if (r === null) return;
+      if (r.trim().toUpperCase() !== 'ELIMINAR') { msg($('mGlobal'), 'No se eliminó: la confirmación no coincide.', 'warn'); return; }
+      const res = await ok(sb.rpc('eliminar_familia', { p_familia: d.elimFam }));
+      const x = (res && res[0]) || {};
+      await cargarFamilias();
+      msg($('mGlobal'), 'Familia ' + esc(d.ap) + ' eliminada (' + (x.estudiantes||0) + ' estudiante(s), ' + (x.tutores||0) + ' tutor(es)).'
+        + (x.cuentas_sueltas ? '<br>Tenía ' + x.cuentas_sueltas + ' cuenta(s) de acceso: siguen en la pestaña <b>Cuentas</b>, elimínalas ahí si ya no se usarán.' : ''),
+        x.cuentas_sueltas ? 'warn' : 'ok');
+      window.scrollTo(0,0);
+    }
     if (d.actFam) { await ok(sb.from('familias').update({ activa: d.v === 'true' }).eq('id', d.actFam)); await cargarFamilias(); }
   } catch (err) { falla(err); }
 };
