@@ -56,6 +56,13 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
 .hijo{font-weight:700;font-size:15px;margin-top:3px}
 .hijo span{font-weight:400;color:var(--ink3);font-size:12.5px}
 
+.recibido{background:var(--brand);font-size:16px;padding:15px}
+.cierre{text-align:center;background:var(--brand-soft);border:1.5px solid var(--brand);border-radius:14px;padding:22px 16px;margin-top:12px}
+.cierre .ok{width:54px;height:54px;border-radius:50%;background:var(--brand);color:#fff;font-size:28px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.cierre .t{font-size:19px;font-weight:800;color:var(--brand)}
+.cierre .n{font-size:15px;font-weight:700;margin-top:6px}
+.cierre .h{font-size:12.5px;color:var(--ink2);margin-top:3px}
 .track{background:var(--blue-soft);border:1px solid #a9cdeb;border-radius:11px;padding:12px;margin-top:12px}
 .trow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid #d4e4f2}
 .trow:last-of-type{border-bottom:none}
@@ -137,10 +144,20 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
 
       <div class="msg" id="mAviso"></div>
 
+      <div class="cierre" id="cierre" style="display:none">
+        <div class="ok">✓</div>
+        <div class="t">Recogida completada</div>
+        <div class="n" id="cierreNombres"></div>
+        <div class="h" id="cierreHora"></div>
+        <div class="h" style="margin-top:10px">Gracias. ¡Hasta la próxima!</div>
+      </div>
+
       <!-- seguimiento + ubicación -->
       <div class="track" id="track" style="display:none">
         <div class="rlabel">Seguimiento</div>
         <div id="listaTrack"></div>
+        <button class="btn recibido" id="bRecibido" style="display:none">✓ Ya lo tengo</button>
+        <div class="hint" id="hintRecibido" style="display:none;text-align:center">Tócalo cuando tu hijo ya esté contigo.</div>
         <button class="btn" id="bCancelar" style="background:var(--alert);margin-top:9px;display:none">Cancelar este aviso</button>
 
         <div class="sep">
@@ -6050,36 +6067,78 @@ $("bAvisar").addEventListener("click", async () => {
   }
 });
 async function refrescarSeguimiento() {
-  const { data } = await sb.from("avisos").select("id, estado, carril, posicion, color, tanda, estudiantes(nombre)").eq("fecha", hoyISO()).neq("estado", "cancelado").order("t_aviso");
+  const { data } = await sb.from("avisos")
+    .select("id, estado, carril, posicion, color, tanda, t_entregado, t_recibido, estudiantes(nombre)")
+    .eq("fecha", hoyISO()).neq("estado", "cancelado").order("t_aviso");
   const vivos = data || [];
-  if (!vivos.length) {
-    $("track").style.display = "none";
-    return;
-  }
+  const ninguno = () => { $("track").style.display = "none"; $("cierre").style.display = "none"; };
+  if (!vivos.length) { ninguno(); return; }
   if (!tandaActual) tandaActual = vivos[vivos.length - 1].tanda;
   const mios = vivos.filter((a) => a.tanda === tandaActual);
-  if (!mios.length) {
-    $("track").style.display = "none";
-    return;
-  }
+  if (!mios.length) { ninguno(); return; }
+
+  // Todos entregados y confirmados por la familia: pantalla de cierre.
+  if (mios.every((a) => a.estado === "entregado" && a.t_recibido)) { mostrarCierre(mios); return; }
+
+  $("cierre").style.display = "none";
   $("track").style.display = "block";
   $("zonaAviso").style.display = "none";
   $("listaTrack").innerHTML = mios.map((a) => {
+    const recibido = a.estado === "entregado" && a.t_recibido;
     const paso = a.estado === "avisado" ? 1 : a.estado === "camino" ? 2 : 3;
-    const txt = a.estado === "avisado" ? "Avisado \xB7 el aula lo est\xE1 preparando" : a.estado === "camino" ? "Va en camino a la zona de carga" : "Entregado";
-    const ubic = a.carril ? ' <span style="font-weight:400;font-size:11px;color:var(--ink3)">carril '.concat(a.carril).concat(a.posicion ? " \xB7 posici\xF3n " + a.posicion : "", "</span>") : "";
-    return '<div class="trow">\n      <div class="tname">'.concat(esc(a.estudiantes.nombre)).concat(ubic, '</div>\n      <div class="dots">\n        <span class="dot').concat(paso >= 1 ? " on" : "", '"></span>\n        <span class="dot').concat(paso >= 2 ? " on" : "", '"></span>\n        <span class="dot').concat(paso >= 3 ? " on" : "", '"></span>\n      </div>\n      <div class="tlabel').concat(paso < 2 ? " wait" : "", '">').concat(txt, "</div>\n    </div>");
+    const txt = a.estado === "avisado" ? "Avisado \xB7 el aula lo est\xE1 preparando"
+      : a.estado === "camino" ? "Va en camino a la zona de carga"
+      : recibido ? "Recibido \u2713" : "Entregado \xB7 conf\xEDrmalo abajo";
+    const ubic = a.carril ? ' <span style="font-weight:400;font-size:11px;color:var(--ink3)">carril ' + a.carril +
+      (a.posicion ? " \xB7 posici\xF3n " + a.posicion : "") + "</span>" : "";
+    return '<div class="trow"><div class="tname">' + esc(a.estudiantes.nombre) + ubic + '</div>' +
+      '<div class="dots"><span class="dot' + (paso >= 1 ? " on" : "") + '"></span><span class="dot' + (paso >= 2 ? " on" : "") +
+      '"></span><span class="dot' + (paso >= 3 ? " on" : "") + '"></span></div>' +
+      '<div class="tlabel' + (paso < 2 ? " wait" : "") + '">' + txt + "</div></div>";
   }).join("");
+
   const c = mios[0];
   if (c.carril) marcar("carriles", String(c.carril));
   if (c.posicion) marcar("posiciones", String(c.posicion));
   if (c.color) marcarColor(c.color);
-  if (mios.every((a) => a.estado === "entregado")) {
-    $("zonaAviso").style.display = "block";
-    tandaActual = null;
-  }
+
+  // "Ya lo tengo": cuando el niño ya salió del aula (en camino) o la puerta ya lo entregó
+  const porConfirmar = mios.some((a) => (a.estado === "camino" || a.estado === "entregado") && !a.t_recibido);
+  $("bRecibido").style.display = porConfirmar ? "block" : "none";
+  $("hintRecibido").style.display = porConfirmar ? "block" : "none";
   $("bCancelar").style.display = mios.some((a) => a.estado !== "entregado") ? "block" : "none";
 }
+
+function mostrarCierre(mios) {
+  $("track").style.display = "none";
+  $("zonaAviso").style.display = "none";
+  limpiar($("mAviso"));
+  const nombres = mios.map((a) => a.estudiantes.nombre.split(" ")[0]);
+  $("cierreNombres").textContent = nombres.length > 1
+    ? nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1] : nombres[0];
+  const ultima = Math.max.apply(null, mios.map((a) => +new Date(a.t_recibido)));
+  $("cierreHora").textContent = (nombres.length > 1 ? "Recibidos" : "Recibido") + " a las " + hhmm(new Date(ultima));
+  $("cierre").style.display = "block";
+}
+
+$("bRecibido").addEventListener("click", async () => {
+  if (!tandaActual) return;
+  $("bRecibido").disabled = true;
+  try {
+    const { data, error } = await sb.rpc("confirmar_recibido", { p_tanda: tandaActual });
+    if (error) throw new Error(error.message);
+    const r = (data && data[0]) || {};
+    await refrescarSeguimiento();
+    if (r.r_aun_en_aula) {
+      aviso($("mAviso"), "Confirmado. <b>" + esc(r.r_aun_en_aula) + "</b> todav\xEDa no sale del aula: conf\xEDrmalo cuando lo recibas.", "warn");
+    }
+  } catch (e) {
+    aviso($("mAviso"), "No se pudo confirmar: " + esc(e.message), "err");
+  } finally {
+    $("bRecibido").disabled = false;
+  }
+});
+
 $("bCancelar").addEventListener("click", async () => {
   if (!tandaActual) return;
   if (!confirm("\xBFCancelar este aviso? El aula y la puerta dejar\xE1n de verlo. Podr\xE1s avisar de nuevo cuando quieras.")) return;

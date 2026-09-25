@@ -5981,7 +5981,7 @@ async function pintarHorario() {
 async function cargar() {
   const [vivos, hechos] = await Promise.all([
     sb.from("avisos").select("id, estado, carril, posicion, color, nombre_recoge, autorizacion_id, tanda, t_aviso, estudiantes(nombre, aulas(nombre))").eq("fecha", hoy).in("estado", ["avisado", "camino"]).order("t_aviso"),
-    sb.from("avisos").select("nombre_recoge, carril, posicion, color, t_entregado, autorizacion_id, estudiantes(nombre, aulas(nombre))").eq("fecha", hoy).eq("estado", "entregado").order("t_entregado", { ascending: false })
+    sb.from("avisos").select("nombre_recoge, carril, posicion, color, t_entregado, t_recibido, entrega_origen, autorizacion_id, estudiantes(nombre, aulas(nombre))").eq("fecha", hoy).eq("estado", "entregado").order("t_entregado", { ascending: false })
   ]);
   if (vivos.error) {
     aviso($("mPuerta"), "No se pudieron cargar los avisos: " + vivos.error.message, "err");
@@ -6054,7 +6054,15 @@ function pintarHistorial(h) {
   $("hist").innerHTML = h.length ? h.map((f) => {
     const col = COLORES[f.color];
     const quien = esc(f.autorizacion_id ? f.nombre_recoge + " (autorizado)" : f.nombre_recoge);
-    return '<div class="hrow"><span class="ht">'.concat(f.t_entregado ? hhmm(new Date(f.t_entregado)) : "", "</span>\n      <span><b>").concat(esc(f.estudiantes.nombre), "</b> \xB7 ").concat(esc(f.estudiantes.aulas ? f.estudiantes.aulas.nombre : ""), " \u2014 retirado por ").concat(quien).concat(f.carril ? " (carril " + f.carril + (f.posicion ? ", posici\xF3n " + f.posicion : "") + (col ? ", " + col.nom : "") + ")" : "", "</span></div>");
+    // constancia de la familia: confirmó, o cerró ella la entrega porque aquí no se marcó
+    const familia = f.entrega_origen === "familia"
+      ? ' <span style="color:#8a5e12;font-weight:700">\xB7 cerrada por la familia</span>'
+      : f.t_recibido ? ' <span style="color:var(--brand);font-weight:700">\xB7 familia confirm\xF3 \u2713</span>' : "";
+    return '<div class="hrow"><span class="ht">' + (f.t_entregado ? hhmm(new Date(f.t_entregado)) : "") + "</span>" +
+      "<span><b>" + esc(f.estudiantes.nombre) + "</b> \xB7 " + esc(f.estudiantes.aulas ? f.estudiantes.aulas.nombre : "") +
+      " \u2014 retirado por " + quien +
+      (f.carril ? " (carril " + f.carril + (f.posicion ? ", posici\xF3n " + f.posicion : "") + (col ? ", " + col.nom : "") + ")" : "") +
+      familia + "</span></div>";
   }).join("") : '<div style="font-size:11.5px;color:var(--ink3)">A\xFAn no hay retiros registrados hoy.</div>';
 }
 $("lista").addEventListener("click", async (e) => {

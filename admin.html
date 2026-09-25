@@ -196,7 +196,7 @@ tr.inactivo td{opacity:.45}
         <div class="fijo"><button class="btn sec" id="bCsv">Descargar CSV</button></div>
       </div>
       <div class="kpis" id="kpis"></div>
-      <table><thead><tr><th>Estudiante</th><th>Aula</th><th>Recogió</th><th>Aviso</th><th>Salió del aula</th><th>Entregado</th><th>Aviso → entrega</th></tr></thead>
+      <table><thead><tr><th>Estudiante</th><th>Aula</th><th>Recogió</th><th>Aviso</th><th>Salió del aula</th><th>Entregado</th><th>Familia confirmó</th><th>Aviso → entrega</th></tr></thead>
       <tbody id="tRep"></tbody></table>
     </div>
   </div>
@@ -6789,7 +6789,7 @@ $("saludLista").onclick = (e) => {
 };
 let repFilas = [];
 async function cargarReporte() {
-  const todas = await ok(sb.from("avisos").select("estado, nombre_recoge, autorizacion_id, t_aviso, t_camino, t_entregado, carril, posicion, estudiantes(nombre, aulas(nombre))").eq("fecha", $("repFecha").value).order("t_aviso"));
+  const todas = await ok(sb.from("avisos").select("estado, nombre_recoge, autorizacion_id, t_aviso, t_camino, t_entregado, t_recibido, entrega_origen, carril, posicion, estudiantes(nombre, aulas(nombre))").eq("fecha", $("repFecha").value).order("t_aviso"));
   const cancelados = todas.filter((f) => f.estado === "cancelado");
   repFilas = todas.filter((f) => f.estado !== "cancelado");
   const ent = repFilas.filter((f) => f.t_entregado);
@@ -6803,14 +6803,22 @@ async function cargarReporte() {
     [ent.length, "entregados"],
     [mins ? Math.round(mins) + " min" : "\u2014", "del primer aviso a la \xFAltima entrega"],
     [prom ? Math.round(prom / 60 * 10) / 10 + " min" : "\u2014", "promedio aviso \u2192 entrega"],
-    [mins && ent.length ? (ent.length / mins).toFixed(1) : "\u2014", "entregados por minuto"]
+    [mins && ent.length ? (ent.length / mins).toFixed(1) : "\u2014", "entregados por minuto"],
+    [ent.length ? ent.filter((f) => f.t_recibido).length + "/" + ent.length : "\u2014", "confirmados por la familia"]
   ].map(([v, t]) => '<div class="kpi"><b>'.concat(v, "</b><span>").concat(t, "</span></div>")).join("");
-  $("tRep").innerHTML = repFilas.map((f) => "<tr><td>".concat(esc(f.estudiantes.nombre), "</td><td>").concat(esc(f.estudiantes.aulas ? f.estudiantes.aulas.nombre : ""), "</td>\n    <td>").concat(esc(f.nombre_recoge)).concat(f.autorizacion_id ? " (autorizado)" : "", "</td><td>").concat(hhmm(f.t_aviso), "</td><td>").concat(hhmm(f.t_camino), "</td><td>").concat(hhmm(f.t_entregado), "</td>\n    <td>").concat(f.t_entregado ? Math.round(seg(f) / 60 * 10) / 10 + " min" : "\u2014", "</td></tr>")).join("") || '<tr><td colspan="7" style="color:var(--ink3)">Sin avisos ese d\xEDa.</td></tr>';
-  if (cancelados.length) $("tRep").innerHTML += '<tr><td colspan="7" style="font-size:11.5px;color:var(--ink3)">\n    '.concat(cancelados.length, " aviso(s) cancelado(s) ese d\xEDa, no incluidos en los indicadores.</td></tr>");
+  $("tRep").innerHTML = repFilas.map((f) => "<tr><td>" + esc(f.estudiantes.nombre) + "</td><td>" +
+    esc(f.estudiantes.aulas ? f.estudiantes.aulas.nombre : "") + "</td><td>" + esc(f.nombre_recoge) +
+    (f.autorizacion_id ? " (autorizado)" : "") + "</td><td>" + hhmm(f.t_aviso) + "</td><td>" + hhmm(f.t_camino) +
+    "</td><td>" + hhmm(f.t_entregado) + "</td><td>" +
+    (f.entrega_origen === "familia" ? '<span style="color:#8a5e12">' + hhmm(f.t_recibido) + " (cerr\xF3 la familia)</span>"
+      : f.t_recibido ? hhmm(f.t_recibido) : "\u2014") + "</td><td>" +
+    (f.t_entregado ? Math.round(seg(f) / 60 * 10) / 10 + " min" : "\u2014") + "</td></tr>").join("")
+    || '<tr><td colspan="8" style="color:var(--ink3)">Sin avisos ese d\xEDa.</td></tr>';
+  if (cancelados.length) $("tRep").innerHTML += '<tr><td colspan="8" style="font-size:11.5px;color:var(--ink3)">\n    '.concat(cancelados.length, " aviso(s) cancelado(s) ese d\xEDa, no incluidos en los indicadores.</td></tr>");
 }
 $("repFecha").onchange = () => cargarReporte().catch(falla);
 $("bCsv").onclick = () => {
-  const cab = ["estudiante", "aula", "recogio", "autorizado", "aviso", "salio_aula", "entregado", "carril", "posicion", "estado"];
+  const cab = ["estudiante", "aula", "recogio", "autorizado", "aviso", "salio_aula", "entregado", "familia_confirmo", "cerro_la_familia", "carril", "posicion", "estado"];
   const iso = (t) => t ? new Date(t).toLocaleString("es-DO") : "";
   const lineas = repFilas.map((f) => {
     var _a, _b;
@@ -6822,6 +6830,8 @@ $("bCsv").onclick = () => {
       iso(f.t_aviso),
       iso(f.t_camino),
       iso(f.t_entregado),
+      iso(f.t_recibido),
+      f.entrega_origen === "familia" ? "s\xED" : "no",
       (_a = f.carril) != null ? _a : "",
       (_b = f.posicion) != null ? _b : "",
       f.estado
